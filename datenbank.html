@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entwicklungsdatenbank – Analoge Welt der Fotografie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #17120f; --panel: #231a15; --line: #3d2d22;
+    --text: #ecdfca; --muted: #a8957d; --amber: #e0912f; --safelight: #d1432f;
+    --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+    --sans: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.5 var(--sans); min-height: 100vh; }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 400; margin: 0; }
+  button, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  a { color: var(--amber); }
+
+  .strip { height: 22px; background: #0d0a08; border-bottom: 1px solid var(--line);
+    background-image: radial-gradient(circle at 10px 11px, var(--bg) 0 4px, transparent 4.5px);
+    background-size: 28px 22px; background-repeat: repeat-x; }
+  header.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap;
+    max-width: 1000px; margin: 0 auto; padding: 1.25rem 1.25rem .5rem; }
+  header.top h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); line-height: 1.05; }
+  header.top .sub { margin: .3rem 0 0; color: var(--muted); }
+  main { max-width: 1000px; margin: 0 auto; padding: 0 1.25rem 4rem; }
+
+  .btn { background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 4px;
+    padding: .45rem .9rem; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn:hover { border-color: var(--muted); }
+
+  .picker { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr auto; align-items: end;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem; margin: 1rem 0; }
+  label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: .25rem; }
+  select { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: .6rem .6rem; }
+  @media (max-width: 700px) { .picker { grid-template-columns: 1fr; } }
+
+  .hint { color: var(--muted); font-size: .92rem; }
+  .empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 6px; padding: 2rem 1rem; text-align: center; }
+  .stats { color: var(--muted); }
+  .err { color: #f08a78; border: 1px solid var(--safelight); border-radius: 6px; padding: .7rem 1rem; }
+
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; }
+  th, td { text-align: left; padding: .65rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: .85rem; }
+  td.time { font-family: var(--serif); font-size: 1.5rem; white-space: nowrap; color: var(--amber); }
+  td .small { display: block; color: var(--muted); font-size: .85rem; }
+
+  .cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .rcard { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 1.2rem; }
+  .rcard h3 { font-size: 1.5rem; line-height: 1.15; }
+  .rcard .big { font-family: var(--serif); font-size: 3.4rem; line-height: 1.1; color: var(--amber); margin: .6rem 0; }
+  .rcard .big small { font-size: 1.2rem; color: var(--muted); }
+  .rcard dl { display: grid; grid-template-columns: auto 1fr; gap: .25rem .9rem; margin: 0; }
+  .rcard dt { color: var(--muted); } .rcard dd { margin: 0; }
+  .foot { margin-top: 2.5rem; color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<div class="strip" aria-hidden="true"></div>
+<header class="top">
+  <div>
+    <h1>Analoge Welt<br>der Fotografie</h1>
+    <p class="sub">Entwicklungsdatenbank: welcher Film in welchem Entwickler, wie lange</p>
+  </div>
+  <a class="btn" href="index.html">Zur Filmsammlung</a>
+</header>
+
+<main>
+  <section class="picker" aria-label="Auswahl">
+    <div><label for="sel-film">Film</label><select id="sel-film"></select></div>
+    <div><label for="sel-dev">Entwickler</label><select id="sel-dev"></select></div>
+    <button class="btn" id="reset" type="button">Zurücksetzen</button>
+  </section>
+
+  <div id="status" role="status"></div>
+  <div id="result"></div>
+
+  <p class="foot">Alle Angaben sind Richtwerte. Maßgeblich sind die Datenblätter der Hersteller und deine eigenen Tests.
+    <a href="pflege.html">Pflege</a></p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const filmLabel = (f) => `${f.brand} ${f.name}`;
+const devLabel = (d) => `${d.brand} ${d.name}`;
+
+let films = [], devs = [], times = [];
+const filmById = (id) => films.find((f) => f.id === id);
+const devById = (id) => devs.find((d) => d.id === id);
+
+function showError(text) { $("#status").innerHTML = `<div class="err">${esc(text)}</div>`; }
+
+let db;
+try {
+  if (typeof supabase === "undefined") throw new Error("Die Supabase-Bibliothek konnte nicht geladen werden.");
+  if (typeof SUPABASE_URL === "undefined" || typeof SUPABASE_ANON_KEY === "undefined")
+    throw new Error("config.js wurde nicht gefunden. Liegt die Datei im selben Ordner wie diese Seite?");
+  if (SUPABASE_URL.includes("DEIN-PROJEKT") || SUPABASE_ANON_KEY.includes("DEIN-"))
+    throw new Error("In config.js stehen noch die Platzhalter.");
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch (e) { showError("Einrichtungsfehler: " + e.message); throw e; }
+
+async function init() {
+  $("#status").innerHTML = `<p class="hint">Lade Daten …</p>`;
+  const [f, d, t] = await Promise.all([
+    db.from("ref_films").select("*"),
+    db.from("ref_developers").select("*"),
+    db.from("ref_times").select("*"),
+  ]);
+  const err = f.error || d.error || t.error;
+  if (err) return showError("Die Datenbank konnte nicht geladen werden: " + err.message + " (Wurde schema_referenz.sql ausgeführt?)");
+  films = f.data; devs = d.data; times = t.data;
+  $("#status").innerHTML = "";
+  render();
+}
+
+function groupedOptions(items, labelFn, countFn, selected, allText) {
+  const groups = {};
+  items.forEach((i) => (groups[i.brand] ||= []).push(i));
+  const sort = (a, b) => a.localeCompare(b, "de", { numeric: true });
+  return `<option value="">${allText}</option>` + Object.keys(groups).sort(sort).map((b) =>
+    `<optgroup label="${esc(b)}">` + groups[b].sort((x, y) => sort(x.name, y.name)).map((i) =>
+      `<option value="${i.id}"${i.id === selected ? " selected" : ""}>${esc(i.name)} (${countFn(i)})</option>`).join("") + `</optgroup>`).join("");
+}
+
+function render() {
+  const fid = $("#sel-film").value, did = $("#sel-dev").value;
+
+  // Auswahlfelder: nur Einträge mit Zeiten, passend zur jeweils anderen Auswahl
+  const tForDev = times.filter((t) => !did || t.developer_id === did);
+  const tForFilm = times.filter((t) => !fid || t.film_id === fid);
+  const filmIds = new Set(tForDev.map((t) => t.film_id));
+  const devIds = new Set(tForFilm.map((t) => t.developer_id));
+  $("#sel-film").innerHTML = groupedOptions(films.filter((f) => filmIds.has(f.id)), filmLabel,
+    (f) => tForDev.filter((t) => t.film_id === f.id).length, fid, "Alle Filme");
+  $("#sel-dev").innerHTML = groupedOptions(devs.filter((d) => devIds.has(d.id)), devLabel,
+    (d) => tForFilm.filter((t) => t.developer_id === d.id).length, did, "Alle Entwickler");
+
+  const out = $("#result");
+  if (!times.length) {
+    out.innerHTML = `<div class="empty">Die Datenbank wird gerade befüllt. Bald stehen hier Entwicklungszeiten.</div>`;
+    return;
+  }
+  const hit = times.filter((t) => (!fid || t.film_id === fid) && (!did || t.developer_id === did));
+  if (!fid && !did) {
+    out.innerHTML = `<div class="empty"><p>Wähle oben einen <strong>Film</strong> oder einen <strong>Entwickler</strong>.</p>
+      <p class="stats">${new Set(times.map((t) => t.film_id)).size} Filme · ${new Set(times.map((t) => t.developer_id)).size} Entwickler · ${times.length} Rezepte</p></div>`;
+    return;
+  }
+  hit.sort((a, b) => (a.ei ?? 0) - (b.ei ?? 0) || String(a.time_min).localeCompare(String(b.time_min), "de", { numeric: true }));
+
+  if (fid && did) {
+    const f = filmById(fid), d = devById(did);
+    out.innerHTML = `<div class="cards">${hit.map((t) => `
+      <article class="rcard">
+        <h3>${esc(f ? filmLabel(f) : "")}<br>in ${esc(d ? devLabel(d) : "")}</h3>
+        <div class="big">${esc(t.time_min)} <small>min</small></div>
+        <dl>
+          ${t.dilution ? `<dt>Verdünnung</dt><dd>${esc(t.dilution)}</dd>` : ""}
+          ${t.ei ? `<dt>Belichtet mit</dt><dd>EI ${t.ei}</dd>` : ""}
+          ${t.temp_c != null ? `<dt>Temperatur</dt><dd>${t.temp_c} °C</dd>` : ""}
+          ${t.agitation ? `<dt>Kippen</dt><dd>${esc(t.agitation)}</dd>` : ""}
+          ${t.source ? `<dt>Quelle</dt><dd>${esc(t.source)}</dd>` : ""}
+          ${t.notes ? `<dt>Notiz</dt><dd>${esc(t.notes)}</dd>` : ""}
+        </dl>
+      </article>`).join("")}</div>`;
+    return;
+  }
+
+  const byFilm = !!fid;  // Film gewählt -> Zeilen sind Entwickler, sonst Filme
+  const rows = hit.map((t) => {
+    const o = byFilm ? devById(t.developer_id) : filmById(t.film_id);
+    const name = o ? (byFilm ? devLabel(o) : filmLabel(o)) : "?";
+    return { name, t };
+  }).sort((a, b) => a.name.localeCompare(b.name, "de", { numeric: true }));
+  out.innerHTML = `<div class="tablewrap"><table>
+    <thead><tr><th>${byFilm ? "Entwickler" : "Film"}</th><th>Verdünnung</th><th>EI</th><th>Temperatur</th><th>Zeit</th><th>Kippen</th><th>Quelle</th></tr></thead>
+    <tbody>${rows.map(({ name, t }) => `<tr>
+      <td>${esc(name)}${t.notes ? `<span class="small">${esc(t.notes)}</span>` : ""}</td>
+      <td>${esc(t.dilution || "")}</td><td>${t.ei ?? ""}</td><td>${t.temp_c != null ? t.temp_c + " °C" : ""}</td>
+      <td class="time">${esc(t.time_min)}</td><td>${esc(t.agitation || "")}</td><td>${esc(t.source || "")}</td></tr>`).join("")}
+    </tbody></table></div>`;
+}
+
+$("#sel-film").onchange = render;
+$("#sel-dev").onchange = render;
+$("#reset").onclick = () => { $("#sel-film").value = ""; $("#sel-dev").value = ""; render(); };
+init();
+</script>
+</body>
+</html>

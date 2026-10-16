@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Pflege – Analoge Welt der Fotografie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #17120f; --panel: #231a15; --line: #3d2d22;
+    --text: #ecdfca; --muted: #a8957d; --amber: #e0912f; --safelight: #d1432f; --ok: #8fb573;
+    --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+    --sans: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.5 var(--sans); min-height: 100vh; }
+  h1, h2 { font-family: var(--serif); font-weight: 400; margin: 0; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  a { color: var(--amber); }
+  .hidden { display: none !important; }
+  .strip { height: 22px; background: #0d0a08; border-bottom: 1px solid var(--line);
+    background-image: radial-gradient(circle at 10px 11px, var(--bg) 0 4px, transparent 4.5px);
+    background-size: 28px 22px; background-repeat: repeat-x; }
+  header.top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+    max-width: 1100px; margin: 0 auto; padding: 1.25rem 1.25rem .5rem; }
+  header.top h1 { font-size: clamp(1.7rem, 4.5vw, 2.4rem); }
+  header.top .right { display: flex; gap: .5rem; align-items: center; color: var(--muted); font-size: .9rem; flex-wrap: wrap; }
+  main { max-width: 1100px; margin: 0 auto; padding: 0 1.25rem 4rem; }
+
+  .btn { background: var(--amber); color: #1b1109; border: 0; border-radius: 4px; padding: .5rem 1rem; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 500; }
+  .btn.danger { background: transparent; color: var(--safelight); border: 1px solid var(--safelight); font-weight: 500; }
+  .btn.small { padding: .2rem .6rem; font-size: .85rem; }
+
+  label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: .2rem; }
+  input, select, textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: .5rem .6rem; }
+  .grid { display: grid; gap: .75rem 1rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .grid .wide { grid-column: 1 / -1; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.1rem; margin-bottom: 1rem; }
+  .box h2 { font-size: 1.5rem; margin-bottom: .6rem; }
+  .login { max-width: 380px; margin: 3rem auto; }
+  .row { margin-bottom: .75rem; }
+  .actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+  .msg { margin-top: .6rem; font-size: .9rem; min-height: 1.2em; }
+  .msg.err { color: #f08a78; } .msg.ok { color: var(--ok); }
+  .hint { color: var(--muted); font-size: .9rem; }
+
+  nav.tabs { display: flex; gap: 1.5rem; border-bottom: 1px solid var(--line); margin: 1rem 0; flex-wrap: wrap; }
+  nav.tabs button { background: none; border: 0; padding: .5rem 0; cursor: pointer; color: var(--muted);
+    font-family: var(--serif); font-size: 1.4rem; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  nav.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--amber); }
+
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 600px; font-size: .92rem; }
+  th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+  td.act { white-space: nowrap; }
+  textarea { min-height: 150px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; }
+  pre { background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: .6rem; overflow-x: auto; font-size: .85rem; }
+</style>
+</head>
+<body>
+<div class="strip" aria-hidden="true"></div>
+<header class="top">
+  <h1>Pflege der Datenbank</h1>
+  <div class="right">
+    <a href="datenbank.html">Datenbank ansehen</a>
+    <span id="who"></span>
+    <button class="btn ghost small hidden" id="logout">Abmelden</button>
+  </div>
+</header>
+
+<main>
+  <!-- Anmeldung -->
+  <section class="box login" id="login-box">
+    <h2>Anmeldung</h2>
+    <p class="hint">Nur für den Betreiber der Seite.</p>
+    <div class="row"><label for="email">E-Mail</label><input id="email" type="email" autocomplete="email"></div>
+    <div class="row"><label for="pw">Passwort</label><input id="pw" type="password" autocomplete="current-password"></div>
+    <div class="actions"><button class="btn" id="login">Anmelden</button></div>
+    <div class="msg" id="login-msg" role="status"></div>
+  </section>
+
+  <section class="box login hidden" id="denied">
+    <h2>Kein Zugriff</h2>
+    <p>Dieses Konto darf die Datenbank nicht bearbeiten. Melde dich mit dem Admin-Konto an.</p>
+  </section>
+
+  <!-- Pflege -->
+  <section id="admin" class="hidden">
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="times" aria-selected="true">Entwicklungszeiten</button>
+      <button role="tab" data-tab="films" aria-selected="false">Filme</button>
+      <button role="tab" data-tab="devs" aria-selected="false">Entwickler</button>
+      <button role="tab" data-tab="import" aria-selected="false">Import</button>
+    </nav>
+
+    <div id="crud">
+      <div class="box">
+        <h2 id="form-title"></h2>
+        <form id="form"><div class="grid" id="form-fields"></div>
+          <div class="actions">
+            <button class="btn" type="submit" id="form-submit">Speichern</button>
+            <button class="btn ghost hidden" type="button" id="form-cancel">Abbrechen</button>
+          </div>
+          <div class="msg" id="form-msg" role="status"></div>
+        </form>
+      </div>
+      <div class="box">
+        <div class="row"><label for="filter">Suche in der Liste</label><input id="filter" type="search"></div>
+        <div class="tablewrap" id="list"></div>
+      </div>
+    </div>
+
+    <div id="import" class="box hidden">
+      <h2>Zeiten gesammelt importieren</h2>
+      <p class="hint">Füge Zeilen aus einer Tabelle (Excel, Google Sheets) oder mit Semikolon getrennt ein. Film und Entwickler müssen mit „Marke Name“ exakt so geschrieben sein wie in der Datenbank.</p>
+      <pre>Film;Entwickler;Verdünnung;EI;Temperatur;Zeit;Kippen;Quelle
+Ilford HP5 Plus;Agfa Rodinal;1+50;400;20;11:00;30 s, dann 10 s pro Minute;Ilford-Datenblatt</pre>
+      <textarea id="imp-text" placeholder="Hier einfügen …"></textarea>
+      <div class="actions">
+        <button class="btn ghost" id="imp-preview" type="button">Vorschau</button>
+        <button class="btn" id="imp-go" type="button" disabled>Importieren</button>
+      </div>
+      <div class="msg" id="imp-msg" role="status"></div>
+      <div id="imp-bad"></div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const setMsg = (el, text, kind) => { el.textContent = text; el.className = "msg " + (kind || ""); };
+
+let db;
+try {
+  if (typeof supabase === "undefined") throw new Error("Die Supabase-Bibliothek konnte nicht geladen werden.");
+  if (typeof SUPABASE_URL === "undefined" || typeof SUPABASE_ANON_KEY === "undefined")
+    throw new Error("config.js wurde nicht gefunden.");
+  if (SUPABASE_URL.includes("DEIN-PROJEKT") || SUPABASE_ANON_KEY.includes("DEIN-"))
+    throw new Error("In config.js stehen noch die Platzhalter.");
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch (e) { setMsg($("#login-msg"), "Einrichtungsfehler: " + e.message, "err"); throw e; }
+
+const PROC = { sw: "Schwarzweiß", sw_c41: "S/W chromogen (C-41)", c41: "Farbnegativ (C-41)", e6: "Dia (E-6)", sonstige: "Sonstige" };
+const FILM_PROC = ["sw", "sw_c41", "c41", "e6", "sonstige"], DEV_PROC = ["sw", "c41", "e6", "sonstige"];
+const DATA = { films: [], devs: [], times: [] };
+const filmLabel = (f) => `${f.brand} ${f.name}`, devLabel = (d) => `${d.brand} ${d.name}`;
+const filmName = (id) => { const f = DATA.films.find((x) => x.id === id); return f ? filmLabel(f) : "?"; };
+const devName = (id) => { const d = DATA.devs.find((x) => x.id === id); return d ? devLabel(d) : "?"; };
+const byLabel = (list, label, fn) => { const l = String(label || "").trim().toLowerCase(); return l ? list.find((x) => fn(x).toLowerCase() === l) : undefined; };
+
+/* Beschreibung der drei Tabellen: Felder, Spalten der Liste */
+const ENT = {
+  films: { table: "ref_films", title: "Film", fields: [
+      { k: "brand", l: "Marke", req: 1 }, { k: "name", l: "Name", req: 1 }, { k: "iso", l: "ISO", t: "int" },
+      { k: "formats", l: "Formate" }, { k: "process", l: "Prozess", t: "proc", o: FILM_PROC }, { k: "notes", l: "Notizen", wide: 1 } ],
+    head: ["Marke", "Name", "ISO", "Formate", "Prozess"],
+    row: (r) => [r.brand, r.name, r.iso ?? "", r.formats ?? "", PROC[r.process] ?? r.process],
+    sort: (a, b) => filmLabel(a).localeCompare(filmLabel(b), "de", { numeric: true }) },
+  devs: { table: "ref_developers", title: "Entwickler", fields: [
+      { k: "brand", l: "Marke", req: 1 }, { k: "name", l: "Name", req: 1 },
+      { k: "process", l: "Prozess", t: "proc", o: DEV_PROC }, { k: "kind", l: "Art (Pulver, Flüssig, Kit)" }, { k: "notes", l: "Notizen", wide: 1 } ],
+    head: ["Marke", "Name", "Prozess", "Art"],
+    row: (r) => [r.brand, r.name, PROC[r.process] ?? r.process, r.kind ?? ""],
+    sort: (a, b) => devLabel(a).localeCompare(devLabel(b), "de", { numeric: true }) },
+  times: { table: "ref_times", title: "Entwicklungszeit", fields: [
+      { k: "film_id", l: "Film", t: "film", req: 1 }, { k: "developer_id", l: "Entwickler", t: "dev", req: 1 },
+      { k: "dilution", l: "Verdünnung" }, { k: "ei", l: "Belichtet mit (EI)", t: "int" },
+      { k: "temp_c", l: "Temperatur (°C)", t: "num" }, { k: "time_min", l: "Zeit (min:sek)", req: 1 },
+      { k: "agitation", l: "Kippen", wide: 1 }, { k: "source", l: "Quelle" }, { k: "notes", l: "Notizen", wide: 1 } ],
+    head: ["Film", "Entwickler", "Verdünnung", "EI", "°C", "Zeit", "Kippen", "Quelle"],
+    row: (r) => [filmName(r.film_id), devName(r.developer_id), r.dilution ?? "", r.ei ?? "", r.temp_c ?? "", r.time_min, r.agitation ?? "", r.source ?? ""],
+    sort: (a, b) => (filmName(a.film_id) + devName(a.developer_id)).localeCompare(filmName(b.film_id) + devName(b.developer_id), "de", { numeric: true }) },
+};
+let tab = "times", editingId = null;
+
+/* ---------- Anmeldung ---------- */
+$("#login").onclick = async () => {
+  setMsg($("#login-msg"), "");
+  const { error } = await db.auth.signInWithPassword({ email: $("#email").value.trim(), password: $("#pw").value });
+  if (error) setMsg($("#login-msg"), "Anmeldung fehlgeschlagen: " + error.message, "err");
+};
+$("#logout").onclick = () => db.auth.signOut();
+
+db.auth.onAuthStateChange(async (_e, session) => {
+  const user = session?.user;
+  $("#who").textContent = user ? user.email : "";
+  $("#logout").classList.toggle("hidden", !user);
+  $("#login-box").classList.toggle("hidden", !!user);
+  $("#admin").classList.add("hidden");
+  $("#denied").classList.add("hidden");
+  if (!user) return;
+  const { data, error } = await db.rpc("is_admin");
+  if (error || data !== true) { $("#denied").classList.remove("hidden"); return; }
+  $("#admin").classList.remove("hidden");
+  await loadData();
+});
+
+async function loadData() {
+  const [f, d, t] = await Promise.all([
+    db.from("ref_films").select("*"), db.from("ref_developers").select("*"), db.from("ref_times").select("*"),
+  ]);
+  const err = f.error || d.error || t.error;
+  if (err) { alert("Fehler beim Laden: " + err.message); return; }
+  DATA.films = f.data; DATA.devs = d.data; DATA.times = t.data;
+  renderAll();
+}
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll("[data-tab]").forEach((b) => (b.onclick = () => {
+  tab = b.dataset.tab; editingId = null;
+  document.querySelectorAll("[data-tab]").forEach((x) => x.setAttribute("aria-selected", x === b));
+  renderAll();
+}));
+
+function renderAll() {
+  const isImport = tab === "import";
+  $("#crud").classList.toggle("hidden", isImport);
+  $("#import").classList.toggle("hidden", !isImport);
+  if (!isImport) { renderForm(); renderList(); }
+}
+
+/* ---------- Formular ---------- */
+function fieldHtml(f, v) {
+  const id = "pf-" + f.k, req = f.req ? " required" : "";
+  let input;
+  if (f.t === "proc") input = `<select id="${id}">${f.o.map((k) => `<option value="${k}"${v === k ? " selected" : ""}>${esc(PROC[k])}</option>`).join("")}</select>`;
+  else if (f.t === "film" || f.t === "dev") {
+    const list = (f.t === "film" ? DATA.films : DATA.devs).slice().sort(f.t === "film" ? ENT.films.sort : ENT.devs.sort);
+    input = `<select id="${id}"${req}><option value="">Bitte wählen</option>${list.map((x) =>
+      `<option value="${x.id}"${v === x.id ? " selected" : ""}>${esc(f.t === "film" ? filmLabel(x) : devLabel(x))}</option>`).join("")}</select>`;
+  } else if (f.k === "notes" || f.k === "agitation") input = `<input id="${id}" value="${esc(v ?? "")}">`;
+  else input = `<input id="${id}" value="${esc(v ?? "")}"${f.t === "int" ? ' type="number" step="1"' : f.t === "num" ? ' type="number" step="0.1"' : ""}${req}>`;
+  return `<div class="${f.wide ? "wide" : ""}"><label for="${id}">${esc(f.l)}${f.req ? " *" : ""}</label>${input}</div>`;
+}
+
+function renderForm() {
+  const e = ENT[tab];
+  const rec = editingId ? DATA[tab].find((r) => r.id === editingId) : null;
+  $("#form-title").textContent = (rec ? e.title + " bearbeiten" : e.title + " hinzufügen");
+  $("#form-fields").innerHTML = e.fields.map((f) => fieldHtml(f, rec ? rec[f.k] : (f.k === "temp_c" ? 20 : undefined))).join("");
+  $("#form-submit").textContent = rec ? "Änderungen speichern" : "Speichern";
+  $("#form-cancel").classList.toggle("hidden", !rec);
+  setMsg($("#form-msg"), "");
+}
+
+function readForm() {
+  const row = {};
+  for (const f of ENT[tab].fields) {
+    let v = $("#pf-" + f.k).value.trim();
+    if (v === "") v = null;
+    else if (f.t === "int") v = parseInt(v, 10);
+    else if (f.t === "num") v = parseFloat(v);
+    row[f.k] = v;
+  }
+  return row;
+}
+
+$("#form").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const e = ENT[tab], row = readForm();
+  const res = editingId ? await db.from(e.table).update(row).eq("id", editingId) : await db.from(e.table).insert(row);
+  if (res.error) return setMsg($("#form-msg"), "Fehler: " + res.error.message, "err");
+  const wasEdit = !!editingId;
+  editingId = null;
+  await loadData();
+  setMsg($("#form-msg"), wasEdit ? "Gespeichert." : "Hinzugefügt.", "ok");
+};
+$("#form-cancel").onclick = () => { editingId = null; renderForm(); };
+
+/* ---------- Liste ---------- */
+function renderList() {
+  const e = ENT[tab], q = $("#filter").value.trim().toLowerCase();
+  const rows = DATA[tab].slice().sort(e.sort).filter((r) => !q || e.row(r).join(" ").toLowerCase().includes(q));
+  $("#list").innerHTML = rows.length ? `<table><thead><tr>${e.head.map((h) => `<th>${h}</th>`).join("")}<th></th></tr></thead><tbody>${
+    rows.map((r) => `<tr>${e.row(r).map((c) => `<td>${esc(c)}</td>`).join("")}<td class="act">
+      <button class="btn ghost small" data-edit="${r.id}">Bearbeiten</button>
+      <button class="btn danger small" data-del="${r.id}">Löschen</button></td></tr>`).join("")}</tbody></table>`
+    : `<p class="hint">Keine Einträge.</p>`;
+}
+$("#filter").oninput = renderList;
+$("#list").onclick = async (ev) => {
+  const ed = ev.target.closest("[data-edit]");
+  if (ed) { editingId = ed.dataset.edit; renderForm(); $("#form").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  const del = ev.target.closest("[data-del]");
+  if (!del) return;
+  const extra = tab === "times" ? "" : " Alle zugehörigen Entwicklungszeiten werden ebenfalls gelöscht.";
+  if (!confirm("Diesen Eintrag wirklich löschen?" + extra)) return;
+  const { error } = await db.from(ENT[tab].table).delete().eq("id", del.dataset.del);
+  if (error) return alert("Löschen fehlgeschlagen: " + error.message);
+  await loadData();
+};
+
+/* ---------- Import ---------- */
+let importRows = [];
+function parseImport() {
+  const ok = [], bad = [];
+  $("#imp-text").value.split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.trim();
+    if (!line) return;
+    const c = line.split(line.includes("\t") ? "\t" : ";").map((s) => s.trim());
+    if (/^film$/i.test(c[0])) return;
+    const f = byLabel(DATA.films, c[0], filmLabel), d = byLabel(DATA.devs, c[1], devLabel);
+    if (!f) return bad.push(`Zeile ${i + 1}: Film nicht gefunden („${c[0]}“)`);
+    if (!d) return bad.push(`Zeile ${i + 1}: Entwickler nicht gefunden („${c[1]}“)`);
+    if (!c[5]) return bad.push(`Zeile ${i + 1}: Zeit fehlt`);
+    ok.push({
+      film_id: f.id, developer_id: d.id, dilution: c[2] || null,
+      ei: c[3] ? parseInt(c[3], 10) || null : null,
+      temp_c: c[4] ? parseFloat(c[4].replace(",", ".")) || null : null,
+      time_min: c[5], agitation: c[6] || null, source: c[7] || null,
+    });
+  });
+  return { ok, bad };
+}
+$("#imp-preview").onclick = () => {
+  const { ok, bad } = parseImport();
+  importRows = ok;
+  $("#imp-go").disabled = !ok.length;
+  setMsg($("#imp-msg"), `${ok.length} Zeile(n) bereit zum Import, ${bad.length} mit Problem.`, bad.length ? "err" : "ok");
+  $("#imp-bad").innerHTML = bad.length ? `<ul>${bad.map((b) => `<li>${esc(b)}</li>`).join("")}</ul>
+    <p class="hint">Lege fehlende Filme oder Entwickler zuerst in den Reitern „Filme“ bzw. „Entwickler“ an.</p>` : "";
+};
+$("#imp-go").onclick = async () => {
+  if (!importRows.length) return;
+  const { error } = await db.from("ref_times").insert(importRows);
+  if (error) return setMsg($("#imp-msg"), "Import fehlgeschlagen: " + error.message, "err");
+  const n = importRows.length;
+  importRows = []; $("#imp-go").disabled = true; $("#imp-text").value = ""; $("#imp-bad").innerHTML = "";
+  setMsg($("#imp-msg"), `${n} Rezept(e) importiert.`, "ok");
+  await loadData();
+};
+</script>
+</body>
+</html>
