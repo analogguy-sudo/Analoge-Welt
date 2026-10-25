@@ -144,6 +144,14 @@
   .cam-btns { display: flex; gap: .4rem; flex-shrink: 0; }
   .cam-actions { display: flex; gap: .5rem; align-items: end; }
 
+  /* Frames */
+  .fr-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin: .8rem 0 .2rem; }
+  .frtable { border-collapse: collapse; width: 100%; min-width: 640px; font-size: .9rem; }
+  .frtable th, .frtable td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .frtable th { color: var(--muted); font-weight: 500; }
+  .frtable td.nr { font-family: var(--serif); font-size: 1.2rem; color: var(--amber); }
+  .frtable td.act { white-space: nowrap; }
+
   /* Anleitung */
   .guide { max-width: 820px; }
   .guide details { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .2rem 1rem; margin-bottom: .6rem; }
@@ -435,7 +443,7 @@
         <div><label for="f-camera">Kamera</label><select id="f-camera" name="camera_id"></select></div>
         <div><label for="f-shot">Aufnahmedatum</label><input id="f-shot" name="shot_on" type="date"></div>
         <div><label for="f-status">Status</label>
-          <select id="f-status" name="status"><option>geladen</option><option selected>belichtet</option><option>entwickelt</option><option>gescannt</option></select></div>
+          <select id="f-status" name="status"><option selected>geladen</option><option>belichtet</option><option>entwickelt</option><option>gescannt</option></select></div>
       </div>
     </fieldset>
 
@@ -484,6 +492,30 @@
       <textarea id="f-notes" name="notes" rows="5" placeholder="Wetter, Motive, Ergebnis, Fehler …"></textarea>
     </fieldset>
 
+    <fieldset id="frames-box">
+      <legend>Bilder (Frames)</legend>
+      <p class="hint hidden" id="frames-hint">Speichere den Film zuerst, danach kannst du jedes Bild notieren.</p>
+      <div id="frames-ui">
+        <p class="hint">Notiere pro Bild Blende, Zeit und Motiv. Nach dem Speichern springt die Nummer weiter. Blende, Zeit und Objektiv bleiben stehen, so musst du nur ändern, was sich ändert.</p>
+        <div class="grid" id="frame-box">
+          <div><label for="fr-no">Frame Nr.</label><input id="fr-no" type="number" min="1" inputmode="numeric"></div>
+          <div><label for="fr-ap">Blende</label><input id="fr-ap" placeholder="f/8"></div>
+          <div><label for="fr-sh">Belichtungszeit</label><input id="fr-sh" placeholder="1/125"></div>
+          <div><label for="fr-lens">Objektiv</label><input id="fr-lens" placeholder="50mm f/1.8"></div>
+          <div class="wide"><label for="fr-subj">Motiv</label><input id="fr-subj" placeholder="Was hast du fotografiert?"></div>
+          <div><label for="fr-loc">Ort</label><input id="fr-loc"></div>
+          <div class="wide"><label for="fr-notes">Warum so? / Notiz</label><input id="fr-notes" placeholder="Warum diese Einstellung? Licht, Filter, Idee …"></div>
+        </div>
+        <div class="fr-actions">
+          <button type="button" class="btn" id="fr-save">Frame speichern</button>
+          <button type="button" class="btn ghost hidden" id="fr-cancel">Abbrechen</button>
+          <button type="button" class="btn ghost" id="fr-export">Als CSV exportieren</button>
+        </div>
+        <div class="msg" id="fr-msg" role="status"></div>
+        <div class="tablewrap" id="fr-list"></div>
+      </div>
+    </fieldset>
+
     <fieldset id="photos-box">
       <legend>Fotos</legend>
       <p class="hint hidden" id="photos-hint">Speichere den Film zuerst, danach kannst du Fotos hochladen.</p>
@@ -526,7 +558,7 @@ try {
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 
-let user = null, cameras = [], rolls = [], editingId = null;
+let user = null, cameras = [], rolls = [], editingId = null, frameCounts = {};
 
 /* ---------- Anmeldung ---------- */
 function msg(el, text, kind) { el.textContent = text; el.className = "msg " + (kind || ""); }
@@ -555,12 +587,15 @@ db.auth.onAuthStateChange((_event, session) => {
 
 /* ---------- Daten laden ---------- */
 async function loadAll() {
-  const [c, r] = await Promise.all([
+  const [c, r, fr] = await Promise.all([
     db.from("cameras").select("*").order("name"),
     db.from("rolls").select("*").order("created_at", { ascending: false }),
+    db.from("frames").select("roll_id"),
   ]);
   if (c.error || r.error) { alert("Fehler beim Laden: " + (c.error || r.error).message); return; }
   cameras = c.data; rolls = r.data;
+  frameCounts = {};
+  (fr.data || []).forEach((f) => { frameCounts[f.roll_id] = (frameCounts[f.roll_id] || 0) + 1; });
   renderRolls(); renderCameras();
 }
 
@@ -642,6 +677,7 @@ function renderRolls() {
       <h3>${esc(r.film)}</h3>
       <div class="sub">${esc(meta)}</div>
       ${dev ? `<div class="dev">${esc(dev)}</div>` : ""}
+      ${frameCounts[r.id] ? `<div class="sub">${frameCounts[r.id]} Bild(er) notiert</div>` : ""}
       <span class="badge st-${r.status}">${esc(r.status)}</span>
     </button>`;
   }).join("");
@@ -682,10 +718,14 @@ function openRoll(id) {
   $("#del-roll").classList.toggle("hidden", !r);
   $("#photos-hint").classList.toggle("hidden", !!r);
   $("#photos-ui").classList.toggle("hidden", !r);
+  $("#frames-hint").classList.toggle("hidden", !!r);
+  $("#frames-ui").classList.toggle("hidden", !r);
+  frames = []; editingFrameId = null; renderFrames(); resetFrameForm(); msg($("#fr-msg"), "");
   $("#gallery").innerHTML = ""; msg($("#up-msg"), "");
-  dlg.showModal();
+  if (!dlg.open) dlg.showModal();
   autoGrow($("#f-notes"));
-  if (r) loadGallery();
+  if (r && r.status === "geladen") setTimeout(() => $("#frames-box").scrollIntoView({ block: "start" }), 50);
+  if (r) { loadGallery(); loadFrames(); }
 }
 $("#new-roll").onclick = () => openRoll(null);
 $("#close-dlg").onclick = () => dlg.close();
@@ -698,16 +738,21 @@ form.onsubmit = async (e) => {
   row.iso = row.iso ? parseInt(row.iso, 10) : null;
   row.temp_c = row.temp_c ? parseFloat(row.temp_c) : null;
 
-  const res = editingId
-    ? await db.from("rolls").update(row).eq("id", editingId)
-    : await db.from("rolls").insert(row);
+  const isNew = !editingId;
+  const res = isNew
+    ? await db.from("rolls").insert(row).select().single()
+    : await db.from("rolls").update(row).eq("id", editingId);
   if (res.error) {
     const missing = /column|schema cache/i.test(res.error.message);
     $("#roll-err").textContent = "Speichern fehlgeschlagen: " + res.error.message +
-      (missing ? " (Hast du update_filme.sql in Supabase ausgeführt?)" : "");
+      (missing ? " (Hast du setup.sql in Supabase ausgeführt?)" : "");
     return;
   }
-  dlg.close(); loadAll();
+  await loadAll();
+  if (isNew && res.data) {
+    openRoll(res.data.id);   // Dialog bleibt offen: gleich die ersten Frames notieren
+    msg($("#fr-msg"), "Film gespeichert. Jetzt kannst du die Bilder notieren.", "ok");
+  } else dlg.close();
 };
 
 $("#del-roll").onclick = async () => {
@@ -717,6 +762,115 @@ $("#del-roll").onclick = async () => {
   const { error } = await db.from("rolls").delete().eq("id", editingId);
   if (error) { $("#roll-err").textContent = "Löschen fehlgeschlagen: " + error.message; return; }
   dlg.close(); loadAll();
+};
+
+/* ---------- Frames (Einzelbilder) ---------- */
+let frames = [], editingFrameId = null;
+const fv = (id) => { const v = $("#" + id).value.trim(); return v === "" ? null : v; };
+
+async function loadFrames() {
+  const { data, error } = await db.from("frames").select("*").eq("roll_id", editingId).order("frame_no");
+  if (error) {
+    msg($("#fr-msg"), "Frames konnten nicht geladen werden: " + error.message + " (Wurde setup.sql ausgeführt?)", "err");
+    frames = [];
+  } else frames = data;
+  frameCounts[editingId] = frames.length; renderRolls();
+  renderFrames(); resetFrameForm();
+}
+
+function resetFrameForm(keepSettings = true) {
+  editingFrameId = null;
+  const last = frames.length ? frames[frames.length - 1] : null;
+  const next = frames.reduce((m, f) => Math.max(m, f.frame_no), 0) + 1;
+  $("#fr-no").value = next;
+  $("#fr-subj").value = ""; $("#fr-loc").value = ""; $("#fr-notes").value = "";
+  if (!(keepSettings && last)) { $("#fr-ap").value = ""; $("#fr-sh").value = ""; $("#fr-lens").value = ""; }
+  else {
+    // Blende, Zeit und Objektiv des zuletzt gespeicherten Bildes beibehalten
+    $("#fr-ap").value = $("#fr-ap").value || last.aperture || "";
+    $("#fr-sh").value = $("#fr-sh").value || last.shutter || "";
+    $("#fr-lens").value = $("#fr-lens").value || last.lens || "";
+  }
+  $("#fr-save").textContent = "Frame speichern";
+  $("#fr-cancel").classList.add("hidden");
+}
+
+function renderFrames() {
+  const box = $("#fr-list");
+  if (!frames.length) { box.innerHTML = `<p class="hint">Noch keine Bilder notiert.</p>`; return; }
+  box.innerHTML = `<p class="hint">${frames.length} Bild(er) notiert</p><table class="frtable">
+    <thead><tr><th>Nr.</th><th>Blende</th><th>Zeit</th><th>Objektiv</th><th>Motiv</th><th>Ort</th><th>Warum / Notiz</th><th></th></tr></thead>
+    <tbody>${frames.map((f) => `<tr>
+      <td class="nr">${f.frame_no}</td><td>${esc(f.aperture || "")}</td><td>${esc(f.shutter || "")}</td>
+      <td>${esc(f.lens || "")}</td><td>${esc(f.subject || "")}</td><td>${esc(f.location || "")}</td><td>${esc(f.notes || "")}</td>
+      <td class="act"><button type="button" class="btn ghost small" data-fedit="${f.id}">Bearbeiten</button>
+      <button type="button" class="btn danger small" data-fdel="${f.id}">Löschen</button></td></tr>`).join("")}
+    </tbody></table>`;
+}
+
+async function saveFrame() {
+  const no = parseInt($("#fr-no").value, 10);
+  if (!(no > 0)) return msg($("#fr-msg"), "Bitte eine Frame-Nummer eingeben.", "err");
+  const row = { roll_id: editingId, frame_no: no, aperture: fv("fr-ap"), shutter: fv("fr-sh"),
+    lens: fv("fr-lens"), subject: fv("fr-subj"), location: fv("fr-loc"), notes: fv("fr-notes") };
+  const res = editingFrameId
+    ? await db.from("frames").update(row).eq("id", editingFrameId)
+    : await db.from("frames").insert(row);
+  if (res.error) {
+    const dup = /duplicate|unique/i.test(res.error.message);
+    return msg($("#fr-msg"), dup ? `Frame ${no} gibt es schon. Klicke in der Liste auf „Bearbeiten“, um es zu ändern.`
+                                 : "Fehler: " + res.error.message, "err");
+  }
+  const wasEdit = !!editingFrameId;
+  await loadFrames();
+  msg($("#fr-msg"), wasEdit ? `Frame ${no} geändert.` : `Frame ${no} gespeichert.`, "ok");
+  $("#fr-subj").focus();
+}
+
+$("#fr-save").onclick = saveFrame;
+$("#fr-cancel").onclick = () => { resetFrameForm(); msg($("#fr-msg"), ""); };
+// Enter in den Feldern speichert das Frame (und schickt nicht den ganzen Film-Dialog ab)
+$("#frames-ui").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); saveFrame(); }
+});
+$("#fr-list").onclick = async (e) => {
+  const ed = e.target.closest("[data-fedit]");
+  if (ed) {
+    const f = frames.find((x) => x.id === ed.dataset.fedit); if (!f) return;
+    editingFrameId = f.id;
+    $("#fr-no").value = f.frame_no; $("#fr-ap").value = f.aperture ?? ""; $("#fr-sh").value = f.shutter ?? "";
+    $("#fr-lens").value = f.lens ?? ""; $("#fr-subj").value = f.subject ?? "";
+    $("#fr-loc").value = f.location ?? ""; $("#fr-notes").value = f.notes ?? "";
+    $("#fr-save").textContent = "Änderungen speichern";
+    $("#fr-cancel").classList.remove("hidden");
+    $("#frame-box").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  const del = e.target.closest("[data-fdel]");
+  if (!del) return;
+  const f = frames.find((x) => x.id === del.dataset.fdel);
+  if (!f || !confirm(`Frame ${f.frame_no} löschen?`)) return;
+  const { error } = await db.from("frames").delete().eq("id", f.id);
+  if (error) return msg($("#fr-msg"), "Löschen fehlgeschlagen: " + error.message, "err");
+  await loadFrames();
+};
+
+$("#fr-export").onclick = () => {
+  if (!frames.length) return msg($("#fr-msg"), "Es gibt noch nichts zu exportieren.", "err");
+  const roll = rolls.find((r) => r.id === editingId);
+  const cell = (v) => {
+    let s = String(v ?? "");
+    if (/^[=+\-@]/.test(s)) s = "'" + s;   // verhindert Formel-Ausführung in Excel
+    return '"' + s.replace(/"/g, '""') + '"';
+  };
+  const lines = [["Frame", "Blende", "Zeit", "Objektiv", "Motiv", "Ort", "Notiz"].map(cell).join(";")]
+    .concat(frames.map((f) => [f.frame_no, f.aperture, f.shutter, f.lens, f.subject, f.location, f.notes].map(cell).join(";")));
+  const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (roll ? roll.film : "film").replace(/[^a-zA-Z0-9äöüÄÖÜß_-]+/g, "_") + "-frames.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 
 /* ---------- Fotos ---------- */

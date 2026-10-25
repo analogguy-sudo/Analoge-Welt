@@ -5,5 +5,5 @@
 // Der "publishable"/"anon" Key darf öffentlich sein.
 // NIEMALS den "secret"/"service_role" Key hier eintragen!
 
-const SUPABASE_URL = "https://isbprpnuvqkwzfvcioco.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_kj5e_4pt8cvBhYxaBSmRMg_APg1bYPo";
+const SUPABASE_URL = "HIER-DEINE-PROJECT-URL";
+const SUPABASE_ANON_KEY = "HIER-DEIN-PUBLISHABLE-KEY";

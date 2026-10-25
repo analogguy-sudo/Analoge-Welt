@@ -9,7 +9,7 @@
 
 
 -- ---------------------------------------------------------------------
--- TEIL 1: Deine private Filmsammlung (Kameras, Filme, Fotos)
+-- TEIL 1: Deine private Filmsammlung (Kameras, Filme, Frames, Fotos)
 -- ---------------------------------------------------------------------
 
 create table if not exists public.cameras (
@@ -70,7 +70,24 @@ create table if not exists public.photos (
   created_at  timestamptz not null default now()
 );
 
+-- Einzelbilder (Frames) eines Films: Blende, Zeit, Objektiv, Motiv ...
+create table if not exists public.frames (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  roll_id     uuid not null references public.rolls(id) on delete cascade,
+  frame_no    int  not null check (frame_no > 0),
+  aperture    text,                       -- z. B. f/8
+  shutter     text,                       -- z. B. 1/125
+  lens        text,                       -- z. B. 50mm f/1.8
+  subject     text,                       -- Motiv
+  location    text,
+  notes       text,
+  created_at  timestamptz not null default now(),
+  unique (roll_id, frame_no)
+);
+
 create index if not exists rolls_user_idx  on public.rolls(user_id, created_at desc);
+create index if not exists frames_roll_idx on public.frames(roll_id);
 create index if not exists photos_roll_idx on public.photos(roll_id);
 
 
@@ -152,6 +169,7 @@ grant execute on function public.is_admin() to authenticated;
 alter table public.cameras         enable row level security;
 alter table public.rolls           enable row level security;
 alter table public.photos          enable row level security;
+alter table public.frames          enable row level security;
 alter table public.ref_films       enable row level security;
 alter table public.ref_developers  enable row level security;
 alter table public.ref_times       enable row level security;
@@ -163,7 +181,7 @@ begin
   for r in
     select policyname, tablename from pg_policies
     where schemaname = 'public'
-      and tablename in ('cameras','rolls','photos','ref_films','ref_developers','ref_times')
+      and tablename in ('cameras','rolls','photos','frames','ref_films','ref_developers','ref_times')
   loop
     execute format('drop policy %I on public.%I', r.policyname, r.tablename);
   end loop;
@@ -175,6 +193,10 @@ create policy "cameras: eigene" on public.cameras
   using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 create policy "rolls: eigene" on public.rolls
+  for all to authenticated
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+create policy "frames: eigene" on public.frames
   for all to authenticated
   using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 

@@ -168,7 +168,7 @@ function render() {
         <div class="big">${esc(t.time_min)} <small>min</small></div>
         <dl>
           ${t.dilution ? `<dt>Verdünnung</dt><dd>${esc(t.dilution)}</dd>` : ""}
-          ${t.ei ? `<dt>Belichtet mit</dt><dd>ISO ${t.ei}</dd>` : ""}
+          ${t.ei ? `<dt>Belichtet mit</dt><dd>EI ${t.ei}</dd>` : ""}
           ${t.temp_c != null ? `<dt>Temperatur</dt><dd>${t.temp_c} °C</dd>` : ""}
           ${t.agitation ? `<dt>Kippen</dt><dd>${esc(t.agitation)}</dd>` : ""}
           ${t.source ? `<dt>Quelle</dt><dd>${esc(t.source)}</dd>` : ""}
