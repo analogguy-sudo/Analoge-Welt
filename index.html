@@ -545,7 +545,7 @@
       <legend>Entwicklung</legend>
       <div class="grid">
         <div><label for="f-devon">Entwickelt am</label><input id="f-devon" name="developed_on" type="date"></div>
-        <div><label for="f-dev">Entwickler</label><input id="f-dev" name="developer" placeholder="Rodinal, D-76, Cinestill …" autocomplete="off"></div>
+        <div><label for="f-dev">Entwickler</label><input id="f-dev" name="developer" placeholder="Entwickler selbst auswählen" autocomplete="off"><div class="hint" id="developer-suggestion" aria-live="polite"></div></div>
         <div><label for="f-dil">Verdünnung</label><input id="f-dil" name="dilution" placeholder="1+50"></div>
         <div><label for="f-temp">Temperatur (°C)</label><input id="f-temp" name="temp_c" type="number" step="0.1" placeholder="20"></div>
         <div><label for="f-time">Zeit (min:sek)</label><input id="f-time" name="time_min" placeholder="11:30"></div>
@@ -824,6 +824,7 @@ function openRoll(id) {
   if (r && r.ei) $("#f-ei").value = r.ei; else if (legacy) $("#f-ei").value = ""; else syncEi();
   $("#f-age-correction").checked = !!(r && /^Alterskorrektur\b/.test(r.push_pull || ""));
   updateEiHint();
+  updateDeveloperSuggestion();
   if (legacy) $("#ei-hint").textContent = "Bisher notiert: " + r.push_pull + ". Trage die EI ein, um es zu ersetzen.";
   $("#gallery").innerHTML = ""; msg($("#up-msg"), "");
   if (!dlg.open) dlg.showModal();
@@ -831,6 +832,30 @@ function openRoll(id) {
   if (r && r.status === "geladen") setTimeout(() => $("#frames-box").scrollIntoView({ block: "start" }), 50);
   if (r) { loadGallery(); loadFrames(); }
 }
+/* Entwickler-Vorschlag: niemals automatisch speichern oder auswählen. */
+const developerCatalog = [
+  { name: "ADOX Adonal", process: "sw" },
+  { name: "Bellini C-41 Kit", process: "c41" }
+];
+const colorFilmPattern = /portra|ektar|gold 200|colorplus|ultramax|superia|fujicolor|vista|phoenix|cinestill|color negative/i;
+const slideFilmPattern = /ektachrome|provia|velvia/i;
+const bwFilmPattern = /tri-x|t-max|double-x|hp5|fp4|delta|kentmere|apx|fomapan|acros|pan f|ortho|sfx|xp2|streetpan|retro|rpx|superpan|silvermax|chs 100|earl grey|lady grey/i;
+function updateDeveloperSuggestion() {
+  const film = $("#f-film").value.trim();
+  const box = $("#developer-suggestion");
+  box.replaceChildren();
+  if (!film) return;
+  const process = slideFilmPattern.test(film) ? "e6" : /xp2/i.test(film) ? "c41" : colorFilmPattern.test(film) ? "c41" : bwFilmPattern.test(film) ? "sw" : null;
+  const dev = developerCatalog.find(x => x.process === process);
+  if (!dev) { box.textContent = "Kein sicherer Entwickler-Vorschlag. Bitte Filmtyp prüfen."; return; }
+  const label = document.createElement("span");
+  label.textContent = "Vorschlag: " + dev.name + " (keine Entwicklungszeit bestätigt). ";
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.textContent = "Übernehmen";
+  btn.onclick = () => { $("#f-dev").value = dev.name; };
+  box.append(label, btn);
+}
+$("#f-film").addEventListener("input", updateDeveloperSuggestion);
 $("#new-roll").onclick = () => openRoll(null);
 $("#close-dlg").onclick = () => dlg.close();
 
