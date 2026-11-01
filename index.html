@@ -165,7 +165,7 @@
   .inv-btns { display: flex; gap: .4rem; flex-wrap: wrap; }
   .st-expired { color: var(--safelight); margin-top: .3rem; }
 
-  /* Frames */
+  .inv-group { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin-bottom: .7rem; padding: .3rem .8rem; }\n  .inv-group summary { cursor: pointer; padding: .65rem .2rem; }\n  .inv-group summary strong { font-family: var(--serif); font-size: 1.25rem; }\n  .inv-group summary .hint { display: block; margin-top: .2rem; }\n  .inv-group .inv-item { margin-top: .5rem; }\n\n  /* Frames */
   .fr-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin: .8rem 0 .2rem; }
   .frtable { border-collapse: collapse; width: 100%; min-width: 640px; font-size: .9rem; }
   .frtable th, .frtable td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -957,24 +957,38 @@ function renderInventory() {
   const list = inventory
     .filter((i) => (!f || i.format === f) && (!q || [i.film, i.format, i.notes].join(" ").toLowerCase().includes(q)))
     .sort((a, b) => a.format.localeCompare(b.format, "de", { numeric: true }) || a.film.localeCompare(b.film, "de"));
-  const total = inventory.reduce((s, i) => s + i.quantity, 0);
-  $("#inv-total").textContent = inventory.length ? `${total} Film(e) in ${inventory.length} Sorte(n)` : "";
-  $("#inv-list").innerHTML = list.length ? list.map((i) => {
-    const ex = expiryDate(i.expires), expired = ex && ex < new Date();
-    const meta = [i.format, i.iso ? "ISO " + i.iso : "", i.expires ? "haltbar bis " + i.expires : "", i.notes].filter(Boolean).join(" · ");
-    return `<div class="inv-item">
-      <div class="inv-main"><div class="name">${esc(i.film)}</div><div class="meta">${esc(meta)}</div>
-        ${expired ? '<span class="badge st-expired">abgelaufen</span>' : ""}</div>
-      <div class="qty">
-        <button type="button" class="btn ghost" data-act="minus" data-id="${i.id}" aria-label="Einen weniger">−</button>
-        <span class="n">${i.quantity}</span>
-        <button type="button" class="btn ghost" data-act="plus" data-id="${i.id}" aria-label="Einen mehr">+</button>
-      </div>
-      <div class="inv-btns">
-        <button type="button" class="btn small" data-act="use" data-id="${i.id}">Einlegen</button>
-        <button type="button" class="btn ghost small" data-act="edit" data-id="${i.id}">Bearbeiten</button>
-        <button type="button" class="btn danger small" data-act="del" data-id="${i.id}">Löschen</button>
-      </div></div>`;
+  const total = inventory.reduce((sum, i) => sum + i.quantity, 0);
+  const groups = new Map();
+  for (const it of list) {
+    const key = JSON.stringify([it.film.trim().toLocaleLowerCase("de"), it.format.trim().toLocaleLowerCase("de"), it.iso ?? null]);
+    if (!groups.has(key)) groups.set(key, { film: it.film, format: it.format, iso: it.iso, items: [] });
+    groups.get(key).items.push(it);
+  }
+  const openKeys = new Set([...$("#inv-list").querySelectorAll("details[data-group-key][open]")].map(el => el.dataset.groupKey));
+  $("#inv-total").textContent = inventory.length ? `${total} Film(e) in ${groups.size} angezeigten Sorte(n)` : "";
+  $("#inv-list").innerHTML = groups.size ? [...groups.entries()].map(([key, group]) => {
+    const qty = group.items.reduce((sum, it) => sum + it.quantity, 0);
+    const items = [...group.items].sort((a, b) => (expiryDate(a.expires)?.getTime() ?? Infinity) - (expiryDate(b.expires)?.getTime() ?? Infinity));
+    const rows = items.map(i => {
+      const ex = expiryDate(i.expires), expired = ex && ex < new Date();
+      const meta = [i.expires ? "haltbar bis " + i.expires : "ohne Ablaufdatum", i.notes].filter(Boolean).join(" · ");
+      return `<div class="inv-item">
+        <div class="inv-main"><div class="meta">${esc(meta)}</div>
+          ${expired ? '<span class="badge st-expired">abgelaufen</span>' : ""}</div>
+        <div class="qty">
+          <button type="button" class="btn ghost" data-act="minus" data-id="${i.id}" aria-label="Einen weniger">−</button>
+          <span class="n">${i.quantity}</span>
+          <button type="button" class="btn ghost" data-act="plus" data-id="${i.id}" aria-label="Einen mehr">+</button>
+        </div>
+        <div class="inv-btns">
+          <button type="button" class="btn small" data-act="use" data-id="${i.id}">Einlegen</button>
+          <button type="button" class="btn ghost small" data-act="edit" data-id="${i.id}">Bearbeiten</button>
+          <button type="button" class="btn danger small" data-act="del" data-id="${i.id}">Löschen</button>
+        </div></div>`;
+    }).join("");
+    return `<details class="inv-group" data-group-key="${encodeURIComponent(key)}" ${openKeys.has(encodeURIComponent(key)) ? "open" : ""}>
+      <summary><strong>${esc(group.film)}</strong> <span class="hint">${esc(group.format)}${group.iso ? " · ISO " + group.iso : ""} · ${qty} Film(e) · ${items.length} Ablaufdatum/-daten</span></summary>
+      ${rows}</details>`;
   }).join("") : `<div class="empty">${inventory.length ? "Keine Treffer." : "Dein Vorrat ist leer. Füge oben deinen ersten Film hinzu."}</div>`;
 }
 $("#inv-q").oninput = renderInventory;
