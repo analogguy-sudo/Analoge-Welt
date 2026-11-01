@@ -532,7 +532,7 @@
         <div><label for="f-iso">ISO des Films</label><input id="f-iso" name="iso" type="number" min="1" inputmode="numeric" placeholder="400"></div>
         <div><label for="f-ei">Belichtet mit (EI)</label><input id="f-ei" name="ei" type="number" min="1" inputmode="numeric" placeholder="wie ISO"></div>
         <div class="wide"><label><input id="f-age-correction" type="checkbox" style="width:auto"> EI wegen Alterung angepasst (kein automatischer Pull)</label></div>
-        <div class="wide hint" id="ei-hint"></div>
+        <div class="wide hint" id="ei-hint"></div><div class="wide hint" id="expiry-advice" aria-live="polite"></div>
         <div><label for="f-format">Format</label><input id="f-format" name="format" placeholder="35mm / 120 / 4x5"></div>
         <div><label for="f-camera">Kamera</label><select id="f-camera" name="camera_id"></select></div>
         <div><label for="f-shot">Aufnahmedatum</label><input id="f-shot" name="shot_on" type="date"></div>
@@ -825,6 +825,7 @@ function openRoll(id) {
   $("#f-age-correction").checked = !!(r && /^Alterskorrektur\b/.test(r.push_pull || ""));
   updateEiHint();
   updateDeveloperSuggestion();
+  showExpiryAdvice(null);
   if (legacy) $("#ei-hint").textContent = "Bisher notiert: " + r.push_pull + ". Trage die EI ein, um es zu ersetzen.";
   $("#gallery").innerHTML = ""; msg($("#up-msg"), "");
   if (!dlg.open) dlg.showModal();
@@ -1052,14 +1053,30 @@ function fillInvPicker(show) {
     `<option value="${i.id}">${esc(i.film)} · ${esc(i.format)}${i.iso ? " · ISO " + i.iso : ""} (${i.quantity}×)</option>`).join("");
   $("#inv-pick-hint").textContent = "";
 }
+function showExpiryAdvice(it) {
+  const box = $("#expiry-advice");
+  box.replaceChildren();
+  if (!it) return;
+  const date = expiryDate(it.expires);
+  if (!date) { box.textContent = "Kein auswertbares Ablaufdatum hinterlegt."; return; }
+  const years = Math.max(0, (Date.now() - date.getTime()) / (365.2425 * 86400000));
+  if (years === 0) { box.textContent = "Film laut Vorratsdatum noch nicht abgelaufen. Nenn-ISO ist der Ausgangspunkt."; return; }
+  const span = document.createElement("span");
+  span.textContent = "Seit etwa " + years.toFixed(1).replace(".", ",") + " Jahren abgelaufen. Annahme: durchgehend gekühlt. Kühlung verlangsamt Alterung, garantiert aber keine Empfindlichkeit. " +
+    (years >= 10 ? "Deutlich überlagert: Testaufnahmen oder Belichtungsreihe empfohlen; Farbverschiebungen und Schleier möglich. " : "Nenn-ISO als Ausgangspunkt und gegebenenfalls eine Belichtungsreihe verwenden. ") +
+    "Keine pauschale EI-Korrektur ohne Testdaten.";
+  box.append(span);
+}
 $("#inv-pick").onchange = () => {
   const it = inventory.find((x) => x.id === $("#inv-pick").value);
   pendingInvId = it ? it.id : null;
   if (it) {
     $("#f-film").value = it.film; $("#f-format").value = it.format;
     if (it.iso) { $("#f-iso").value = it.iso; eiAuto = true; syncEi(); }
+    showExpiryAdvice(it);
+    updateDeveloperSuggestion();
     $("#inv-pick-hint").textContent = `Wird beim Speichern aus dem Vorrat abgezogen (danach ${it.quantity - 1} übrig). Belichtest du mit anderer ISO, ändere die EI.`;
-  } else $("#inv-pick-hint").textContent = "";
+  } else { $("#inv-pick-hint").textContent = ""; showExpiryAdvice(null); }
 };
 function startRollFromInventory(id) {
   openRoll(null);
