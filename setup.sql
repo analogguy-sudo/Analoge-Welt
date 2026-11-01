@@ -9,7 +9,7 @@
 
 
 -- ---------------------------------------------------------------------
--- TEIL 1: Deine private Filmsammlung (Kameras, Filme, Frames, Fotos)
+-- TEIL 1: Deine private Filmsammlung (Kameras, Filme, Frames, Vorrat, Fotos)
 -- ---------------------------------------------------------------------
 
 create table if not exists public.cameras (
@@ -27,6 +27,7 @@ create table if not exists public.rolls (
   camera_id         uuid references public.cameras(id) on delete set null,
   film              text not null,
   iso               int,
+  ei                int,
   format            text,
   push_pull         text,
   shot_on           date,
@@ -53,6 +54,7 @@ create table if not exists public.rolls (
 
 -- Falls "rolls" aus einer älteren Version existiert: fehlende Spalten ergänzen
 alter table public.rolls
+  add column if not exists ei                int,
   add column if not exists stop_time         text,
   add column if not exists fixer_dilution    text,
   add column if not exists fixer_time        text,
@@ -84,6 +86,19 @@ create table if not exists public.frames (
   notes       text,
   created_at  timestamptz not null default now(),
   unique (roll_id, frame_no)
+);
+
+-- Filmvorrat (Inventarliste der noch nicht belichteten Filme)
+create table if not exists public.inventory (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  film        text not null,
+  format      text not null,
+  iso         int,
+  quantity    int  not null default 1 check (quantity > 0),
+  expires     text,                       -- z. B. 05/2027
+  notes       text,
+  created_at  timestamptz not null default now()
 );
 
 create index if not exists rolls_user_idx  on public.rolls(user_id, created_at desc);
@@ -170,6 +185,7 @@ alter table public.cameras         enable row level security;
 alter table public.rolls           enable row level security;
 alter table public.photos          enable row level security;
 alter table public.frames          enable row level security;
+alter table public.inventory       enable row level security;
 alter table public.ref_films       enable row level security;
 alter table public.ref_developers  enable row level security;
 alter table public.ref_times       enable row level security;
@@ -181,7 +197,7 @@ begin
   for r in
     select policyname, tablename from pg_policies
     where schemaname = 'public'
-      and tablename in ('cameras','rolls','photos','frames','ref_films','ref_developers','ref_times')
+      and tablename in ('cameras','rolls','photos','frames','inventory','ref_films','ref_developers','ref_times')
   loop
     execute format('drop policy %I on public.%I', r.policyname, r.tablename);
   end loop;
@@ -193,6 +209,10 @@ create policy "cameras: eigene" on public.cameras
   using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 create policy "rolls: eigene" on public.rolls
+  for all to authenticated
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+create policy "inventory: eigene" on public.inventory
   for all to authenticated
   using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 

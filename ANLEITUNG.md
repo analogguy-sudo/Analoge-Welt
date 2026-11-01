@@ -6,14 +6,15 @@ Mit dieser Web-App führst du dein digitales Analogbook: Filme, Kameras, jedes e
 
 | Datei | Wohin? | Wozu? |
 |---|---|---|
-| `index.html` | GitHub | die App (Anmeldung, Meine Filme, Kameras, Anleitung) |
+| `index.html` | GitHub | die App (Anmeldung, Meine Filme, Vorrat, Kameras, Anleitung) |
 | `datenbank.html` | GitHub | öffentliche Entwicklungsdatenbank, für alle lesbar |
 | `pflege.html` | GitHub | Seite, auf der nur du die Datenbank pflegst |
 | `config.js` | GitHub | deine zwei Zugangswerte für Supabase |
+| Icons (`icon.svg`, `favicon-32.png`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`) | GitHub | Symbol für Browser-Tab und iPhone-Home-Bildschirm |
 | `setup.sql` | **nur Supabase** | richtet die komplette Datenbank ein |
 | `ANLEITUNG.md` | nirgends | diese Anleitung |
 
-**Wichtig:** `setup.sql` und `ANLEITUNG.md` lädst du **nicht** auf GitHub hoch. Auf GitHub kommen nur die vier Dateien oben.
+**Wichtig:** `setup.sql` und `ANLEITUNG.md` lädst du **nicht** auf GitHub hoch. Auf GitHub kommen nur die Dateien mit „GitHub“ in der Spalte „Wohin?“. Deine ausgefüllte `config.js` auf GitHub überschreibst du dabei nicht.
 
 ---
 
@@ -105,9 +106,15 @@ Diesen Code lädst du nirgends hoch. Er wird nur im SQL Editor ausgeführt.
 
 ## So nutzt du dein Analogbook
 
+**Filmvorrat pflegen (Reiter „Vorrat“)**
+1. Klappe **Film zum Vorrat hinzufügen** auf und trage Filmname, Format (z. B. 35mm oder 120) und Anzahl ein. ISO und Haltbarkeit (z. B. 05/2027) sind optional.
+2. Du siehst in der Liste immer, welche Filme du noch hast. Mit **+** und **−** änderst du die Anzahl, abgelaufene Filme sind rot markiert.
+3. Trägst du denselben Film im selben Format noch einmal ein, wird die Anzahl erhöht, statt einen zweiten Eintrag anzulegen.
+
 **Neuen Film einlegen**
-1. In der App: **Meine Filme**, dann **Neuer Film**.
-2. Filmname, ISO, Format und Kamera eintragen. Der Status steht schon auf **geladen**.
+1. In der App: **Meine Filme**, dann **Neuer Film**. Oder im Reiter **Vorrat** bei einem Film auf **Einlegen** tippen.
+2. Oben im Dialog wählst du **Aus dem Vorrat wählen**. Filmname, ISO und Format werden ausgefüllt. Beim Speichern wird der Film automatisch aus dem Vorrat abgezogen, bei 0 verschwindet er aus der Liste. Ergänze noch die Kamera. Der Status steht schon auf **geladen**.
+3. **Belichtest du mit anderer ISO?** Dann änderst du einfach das Feld **Belichtet mit (EI)**. Die ISO des Films bleibt stehen, die EI folgt ihr automatisch, bis du sie selbst änderst. Die App zeigt dir sofort „Push +1 Blende“ bzw. „Pull −1 Blende“ an, und auf der Filmkarte steht z. B. „ISO 400 → EI 800“.
 3. **Speichern** klicken. Der Dialog bleibt offen und springt zu **Bilder (Frames)**.
 
 **Pro Bild notieren (das ist dein Analogbook)**

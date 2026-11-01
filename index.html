@@ -149,6 +149,22 @@
   .cam-btns { display: flex; gap: .4rem; flex-shrink: 0; }
   .cam-actions { display: flex; gap: .5rem; align-items: end; }
 
+  /* Vorrat */
+  .invbox { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .2rem 1rem .8rem; margin-bottom: 1rem; }
+  .invbox summary { cursor: pointer; font-family: var(--serif); font-size: 1.35rem; padding: .6rem 0; }
+  .invbox[open] summary { margin-bottom: .5rem; }
+  .inotice { border: 1px solid var(--safelight); color: #f08a78; border-radius: 6px; padding: .7rem 1rem; margin-bottom: 1rem; }
+  .inv-item { display: flex; gap: .8rem 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .8rem 1rem; margin-bottom: .6rem; }
+  .inv-main { flex: 1 1 200px; min-width: 0; }
+  .inv-main .name { font-family: var(--serif); font-size: 1.45rem; line-height: 1.15; overflow-wrap: anywhere; }
+  .inv-main .meta { color: var(--muted); font-size: .9rem; }
+  .qty { display: flex; align-items: center; gap: .4rem; }
+  .qty .n { font-family: var(--serif); font-size: 1.7rem; min-width: 2.2rem; text-align: center; color: var(--amber); }
+  .qty .btn { width: 2.6rem; height: 2.6rem; padding: 0; font-size: 1.3rem; line-height: 1; }
+  .inv-btns { display: flex; gap: .4rem; flex-wrap: wrap; }
+  .st-expired { color: var(--safelight); margin-top: .3rem; }
+
   /* Frames */
   .fr-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin: .8rem 0 .2rem; }
   .frtable { border-collapse: collapse; width: 100%; min-width: 640px; font-size: .9rem; }
@@ -247,9 +263,10 @@
   <section id="app" class="hidden">
     <nav class="tabs" role="tablist">
       <button role="tab" id="tab-rolls" aria-selected="true">Meine Filme</button>
+      <button role="tab" id="tab-inv" aria-selected="false">Vorrat</button>
       <button role="tab" id="tab-cams" aria-selected="false">Kameras</button>
-      <a class="tablink" href="datenbank.html">Datenbank ↗</a>
       <button role="tab" id="tab-guide" aria-selected="false">Anleitung</button>
+      <a class="tablink" href="datenbank.html">Datenbank ↗</a>
     </nav>
 
     <div id="view-rolls">
@@ -262,6 +279,34 @@
         <button class="btn" id="new-roll">Neuer Film</button>
       </div>
       <div class="list" id="rolls"></div>
+    </div>
+
+    <div id="view-inv" class="hidden">
+      <div class="inotice hidden" id="inv-notice" role="alert"></div>
+      <p class="hint">Dein Filmvorrat: Filme, die du noch nicht belichtet hast. Wenn du unter „Meine Filme“ einen neuen Film anlegst, wählst du ihn hier aus. Er wird dann automatisch abgezogen und verschwindet bei 0 aus der Liste.</p>
+      <details class="invbox" id="inv-details"><summary>Film zum Vorrat hinzufügen</summary>
+      <form id="inv-form">
+        <datalist id="dl-formats"><option value="35mm"><option value="120"><option value="220"><option value="4x5"><option value="8x10"><option value="Instax"><option value="110"></datalist>
+        <div class="grid">
+          <div class="wide"><label for="inv-film">Filmname *</label><input id="inv-film" required placeholder="z. B. Ilford HP5 Plus" autocomplete="off"></div>
+          <div><label for="inv-format">Format *</label><input id="inv-format" required list="dl-formats" placeholder="35mm" autocomplete="off"></div>
+          <div><label for="inv-qty">Anzahl *</label><input id="inv-qty" type="number" min="1" value="1" required inputmode="numeric"></div>
+          <div><label for="inv-iso">ISO</label><input id="inv-iso" type="number" min="1" inputmode="numeric" placeholder="400"></div>
+          <div><label for="inv-exp">Haltbar bis</label><input id="inv-exp" placeholder="05/2027"></div>
+          <div class="wide"><label for="inv-notes">Notiz</label><input id="inv-notes" placeholder="Gekauft bei, gekühlt gelagert …"></div>
+        </div>
+        <div class="fr-actions">
+          <button class="btn" type="submit" id="inv-submit">Zum Vorrat hinzufügen</button>
+          <button class="btn ghost hidden" type="button" id="inv-cancel">Abbrechen</button>
+        </div>
+        <div class="msg" id="inv-msg" role="status"></div>
+      </form></details>
+      <div class="toolbar">
+        <div class="grow"><label for="inv-q">Suche</label><input id="inv-q" type="search" placeholder="Filmname …"></div>
+        <div><label for="inv-fmt">Format</label><select id="inv-fmt"></select></div>
+      </div>
+      <p class="hint" id="inv-total"></p>
+      <div id="inv-list"></div>
     </div>
 
     <div id="view-cams" class="hidden">
@@ -482,10 +527,12 @@
     <fieldset>
       <legend>Film</legend>
       <div class="grid">
+        <div class="wide hidden" id="inv-pick-wrap"><label for="inv-pick">Aus dem Vorrat wählen</label><select id="inv-pick"></select><div class="hint" id="inv-pick-hint"></div></div>
         <div class="wide"><label for="f-film">Filmname *</label><input id="f-film" name="film" required placeholder="z. B. Ilford HP5 Plus" autocomplete="off"></div>
-        <div><label for="f-iso">ISO</label><input id="f-iso" name="iso" type="number" min="1" placeholder="400"></div>
+        <div><label for="f-iso">ISO des Films</label><input id="f-iso" name="iso" type="number" min="1" inputmode="numeric" placeholder="400"></div>
+        <div><label for="f-ei">Belichtet mit (EI)</label><input id="f-ei" name="ei" type="number" min="1" inputmode="numeric" placeholder="wie ISO"></div>
+        <div class="wide hint" id="ei-hint"></div>
         <div><label for="f-format">Format</label><input id="f-format" name="format" placeholder="35mm / 120 / 4x5"></div>
-        <div><label for="f-push">Push / Pull (EI)</label><input id="f-push" name="push_pull" placeholder="z. B. EI 800 oder +1"></div>
         <div><label for="f-camera">Kamera</label><select id="f-camera" name="camera_id"></select></div>
         <div><label for="f-shot">Aufnahmedatum</label><input id="f-shot" name="shot_on" type="date"></div>
         <div><label for="f-status">Status</label>
@@ -643,17 +690,19 @@ async function loadAll() {
   frameCounts = {};
   (fr.data || []).forEach((f) => { frameCounts[f.roll_id] = (frameCounts[f.roll_id] || 0) + 1; });
   renderRolls(); renderCameras();
+  loadInventory();
 }
 
 /* ---------- Tabs ---------- */
 function showTab(name) {
-  for (const t of ["rolls", "cams", "guide"]) {
+  for (const t of ["rolls", "inv", "cams", "guide"]) {
     $("#view-" + t).classList.toggle("hidden", name !== t);
     $("#tab-" + t).setAttribute("aria-selected", name === t);
   }
 }
 $("#tab-rolls").onclick = () => showTab("rolls");
 $("#tab-cams").onclick = () => showTab("cams");
+$("#tab-inv").onclick = () => showTab("inv");
 $("#tab-guide").onclick = () => showTab("guide");
 
 /* ---------- Verdünnungsrechner ---------- */
@@ -718,7 +767,8 @@ function renderRolls() {
   }
   box.innerHTML = list.map((r) => {
     const dev = [r.developer, r.dilution, r.time_min && r.time_min + " min", r.temp_c != null && r.temp_c + " °C"].filter(Boolean).join(", ");
-    const meta = [r.iso && "ISO " + r.iso, r.format, camName(r.camera_id), fmtDate(r.shot_on)].filter(Boolean).join(", ");
+    const isoText = r.iso ? "ISO " + r.iso + (r.ei && r.ei !== r.iso ? " → EI " + r.ei : (!r.ei && r.push_pull ? " (" + r.push_pull + ")" : "")) : "";
+    const meta = [isoText, r.format, camName(r.camera_id), fmtDate(r.shot_on)].filter(Boolean).join(", ");
     return `<button class="card" data-id="${r.id}">
       <h3>${esc(r.film)}</h3>
       <div class="sub">${esc(meta)}</div>
@@ -767,6 +817,12 @@ function openRoll(id) {
   $("#frames-hint").classList.toggle("hidden", !!r);
   $("#frames-ui").classList.toggle("hidden", !r);
   frames = []; editingFrameId = null; renderFrames(); resetFrameForm(); msg($("#fr-msg"), "");
+  pendingInvId = null; fillInvPicker(!r);
+  const legacy = !!(r && !r.ei && r.push_pull);   // älterer Eintrag mit freier Push/Pull-Notiz
+  eiAuto = !legacy && !(r && r.ei && r.iso && r.ei !== r.iso);
+  if (r && r.ei) $("#f-ei").value = r.ei; else if (legacy) $("#f-ei").value = ""; else syncEi();
+  updateEiHint();
+  if (legacy) $("#ei-hint").textContent = "Bisher notiert: " + r.push_pull + ". Trage die EI ein, um es zu ersetzen.";
   $("#gallery").innerHTML = ""; msg($("#up-msg"), "");
   if (!dlg.open) dlg.showModal();
   autoGrow($("#f-notes"));
@@ -783,6 +839,8 @@ form.onsubmit = async (e) => {
   for (const [k, v] of fd.entries()) row[k] = String(v).trim() === "" ? null : String(v).trim();
   row.iso = row.iso ? parseInt(row.iso, 10) : null;
   row.temp_c = row.temp_c ? parseFloat(row.temp_c) : null;
+  row.ei = row.ei ? parseInt(row.ei, 10) : null;
+  if (row.ei && row.iso) row.push_pull = pushPullLabel(row.iso, row.ei);   // sonst bleibt ein älterer Eintrag unberührt
 
   const isNew = !editingId;
   const res = isNew
@@ -794,6 +852,7 @@ form.onsubmit = async (e) => {
       (missing ? " (Hast du setup.sql in Supabase ausgeführt?)" : "");
     return;
   }
+  if (isNew && pendingInvId) await useFromInventory(pendingInvId);   // Film aus dem Vorrat abziehen
   await loadAll();
   if (isNew && res.data) {
     openRoll(res.data.id);   // Dialog bleibt offen: gleich die ersten Frames notieren
@@ -809,6 +868,179 @@ $("#del-roll").onclick = async () => {
   if (error) { $("#roll-err").textContent = "Löschen fehlgeschlagen: " + error.message; return; }
   dlg.close(); loadAll();
 };
+
+/* ---------- ISO und EI (abweichend belichtet) ---------- */
+let eiAuto = true;   // true: EI folgt automatisch der ISO, bis du sie selbst änderst
+
+function syncEi() {
+  if (eiAuto) $("#f-ei").value = $("#f-iso").value;
+  updateEiHint();
+}
+function updateEiHint() {
+  const iso = parseFloat($("#f-iso").value), ei = parseFloat($("#f-ei").value), hint = $("#ei-hint");
+  if (!(iso > 0) || !(ei > 0)) { hint.textContent = "Trage die ISO des Films ein. Die EI ist der Wert, mit dem du tatsächlich belichtest."; return; }
+  const stops = Math.log2(ei / iso);
+  if (Math.abs(stops) < 0.25) { hint.textContent = "Normal belichtet (EI = ISO)."; return; }
+  const n = (Math.round(Math.abs(stops) * 2) / 2).toLocaleString("de-DE");
+  hint.textContent = stops > 0
+    ? `Push +${n} Blende(n): Der Film wird wie ISO ${ei} belichtet. Entwickle länger (Richtwerte in der Anleitung).`
+    : `Pull −${n} Blende(n): Der Film wird wie ISO ${ei} belichtet. Entwickle kürzer (Richtwerte in der Anleitung).`;
+}
+function pushPullLabel(iso, ei) {
+  if (!(iso > 0) || !(ei > 0)) return null;
+  const stops = Math.log2(ei / iso);
+  if (Math.abs(stops) < 0.25) return null;
+  const n = (Math.round(Math.abs(stops) * 2) / 2).toLocaleString("de-DE");
+  return `${stops > 0 ? "Push +" : "Pull −"}${n} (EI ${ei})`;
+}
+$("#f-iso").addEventListener("input", syncEi);
+$("#f-ei").addEventListener("input", () => { eiAuto = false; updateEiHint(); });
+
+/* ---------- Vorrat (Inventarliste) ---------- */
+let inventory = [], editingInvId = null, pendingInvId = null;
+
+async function loadInventory() {
+  const { data, error } = await db.from("inventory").select("*").order("film");
+  inventory = data || [];
+  const n = $("#inv-notice");
+  n.classList.toggle("hidden", !error);
+  n.textContent = error ? "Der Vorrat ist noch nicht eingerichtet. Führe setup.sql in Supabase aus. (" + error.message + ")" : "";
+  renderInventory();
+}
+
+function expiryDate(s) {
+  if (!s) return null;
+  let m = String(s).match(/(\d{1,2})\s*[\/.\-]\s*(\d{4})/);
+  if (m) return new Date(parseInt(m[2], 10), parseInt(m[1], 10), 0, 23, 59, 59);   // letzter Tag des Monats
+  m = String(s).match(/(\d{4})/);
+  return m ? new Date(parseInt(m[1], 10), 11, 31, 23, 59, 59) : null;
+}
+
+function renderInventory() {
+  const keep = $("#inv-fmt").value;
+  const formats = [...new Set(inventory.map((i) => i.format))].sort((a, b) => a.localeCompare(b, "de", { numeric: true }));
+  $("#inv-fmt").innerHTML = '<option value="">Alle Formate</option>' +
+    formats.map((x) => `<option${x === keep ? " selected" : ""}>${esc(x)}</option>`).join("");
+  const q = $("#inv-q").value.trim().toLowerCase(), f = $("#inv-fmt").value;
+  const list = inventory
+    .filter((i) => (!f || i.format === f) && (!q || [i.film, i.format, i.notes].join(" ").toLowerCase().includes(q)))
+    .sort((a, b) => a.format.localeCompare(b.format, "de", { numeric: true }) || a.film.localeCompare(b.film, "de"));
+  const total = inventory.reduce((s, i) => s + i.quantity, 0);
+  $("#inv-total").textContent = inventory.length ? `${total} Film(e) in ${inventory.length} Sorte(n)` : "";
+  $("#inv-list").innerHTML = list.length ? list.map((i) => {
+    const ex = expiryDate(i.expires), expired = ex && ex < new Date();
+    const meta = [i.format, i.iso ? "ISO " + i.iso : "", i.expires ? "haltbar bis " + i.expires : "", i.notes].filter(Boolean).join(" · ");
+    return `<div class="inv-item">
+      <div class="inv-main"><div class="name">${esc(i.film)}</div><div class="meta">${esc(meta)}</div>
+        ${expired ? '<span class="badge st-expired">abgelaufen</span>' : ""}</div>
+      <div class="qty">
+        <button type="button" class="btn ghost" data-act="minus" data-id="${i.id}" aria-label="Einen weniger">−</button>
+        <span class="n">${i.quantity}</span>
+        <button type="button" class="btn ghost" data-act="plus" data-id="${i.id}" aria-label="Einen mehr">+</button>
+      </div>
+      <div class="inv-btns">
+        <button type="button" class="btn small" data-act="use" data-id="${i.id}">Einlegen</button>
+        <button type="button" class="btn ghost small" data-act="edit" data-id="${i.id}">Bearbeiten</button>
+        <button type="button" class="btn danger small" data-act="del" data-id="${i.id}">Löschen</button>
+      </div></div>`;
+  }).join("") : `<div class="empty">${inventory.length ? "Keine Treffer." : "Dein Vorrat ist leer. Füge oben deinen ersten Film hinzu."}</div>`;
+}
+$("#inv-q").oninput = renderInventory;
+$("#inv-fmt").onchange = renderInventory;
+
+function resetInvForm() {
+  editingInvId = null;
+  $("#inv-form").reset();
+  $("#inv-qty").value = 1;
+  $("#inv-submit").textContent = "Zum Vorrat hinzufügen";
+  $("#inv-cancel").classList.add("hidden");
+}
+$("#inv-cancel").onclick = () => { resetInvForm(); msg($("#inv-msg"), ""); };
+
+$("#inv-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const row = {
+    film: $("#inv-film").value.trim(), format: $("#inv-format").value.trim(),
+    iso: $("#inv-iso").value ? parseInt($("#inv-iso").value, 10) : null,
+    quantity: Math.max(1, parseInt($("#inv-qty").value, 10) || 1),
+    expires: $("#inv-exp").value.trim() || null, notes: $("#inv-notes").value.trim() || null,
+  };
+  let res, text;
+  if (editingInvId) { res = await db.from("inventory").update(row).eq("id", editingInvId); text = "Gespeichert."; }
+  else {
+    // Gleicher Film im gleichen Format und gleicher Haltbarkeit? Dann Anzahl erhöhen statt doppelt anlegen.
+    const same = inventory.find((i) => i.film.toLowerCase() === row.film.toLowerCase() && i.format.toLowerCase() === row.format.toLowerCase()
+      && (i.expires || "") === (row.expires || ""));
+    if (same) { const newQty = same.quantity + row.quantity;
+      res = await db.from("inventory").update({ quantity: newQty }).eq("id", same.id);
+      text = `Zu vorhandenem Eintrag hinzugefügt (jetzt ${newQty}).`; }
+    else { res = await db.from("inventory").insert(row); text = "Zum Vorrat hinzugefügt."; }
+  }
+  if (res.error) return msg($("#inv-msg"), "Fehler: " + res.error.message, "err");
+  resetInvForm();
+  await loadInventory();
+  msg($("#inv-msg"), text, "ok");
+};
+
+async function setQty(it, n) {
+  if (n <= 0) {
+    if (!confirm(`„${it.film}“ ist dann aufgebraucht und wird aus dem Vorrat entfernt. Fortfahren?`)) return;
+    await db.from("inventory").delete().eq("id", it.id);
+  } else await db.from("inventory").update({ quantity: n }).eq("id", it.id);
+  await loadInventory();
+}
+
+$("#inv-list").onclick = async (e) => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const it = inventory.find((x) => x.id === b.dataset.id); if (!it) return;
+  const act = b.dataset.act;
+  if (act === "plus") await setQty(it, it.quantity + 1);
+  else if (act === "minus") await setQty(it, it.quantity - 1);
+  else if (act === "use") startRollFromInventory(it.id);
+  else if (act === "edit") {
+    editingInvId = it.id;
+    $("#inv-details").open = true;
+    $("#inv-film").value = it.film; $("#inv-format").value = it.format; $("#inv-qty").value = it.quantity;
+    $("#inv-iso").value = it.iso ?? ""; $("#inv-exp").value = it.expires ?? ""; $("#inv-notes").value = it.notes ?? "";
+    $("#inv-submit").textContent = "Änderungen speichern";
+    $("#inv-cancel").classList.remove("hidden");
+    $("#inv-details").scrollIntoView({ behavior: "smooth", block: "start" });
+  } else if (act === "del") {
+    if (!confirm(`„${it.film}“ komplett aus dem Vorrat löschen?`)) return;
+    await db.from("inventory").delete().eq("id", it.id);
+    await loadInventory();
+  }
+};
+
+/* Auswahl im Dialog "Neuer Film" */
+function fillInvPicker(show) {
+  const avail = inventory.filter((i) => i.quantity > 0)
+    .sort((a, b) => a.format.localeCompare(b.format, "de", { numeric: true }) || a.film.localeCompare(b.film, "de"));
+  $("#inv-pick-wrap").classList.toggle("hidden", !(show && avail.length));
+  $("#inv-pick").innerHTML = '<option value="">– nicht aus dem Vorrat –</option>' + avail.map((i) =>
+    `<option value="${i.id}">${esc(i.film)} · ${esc(i.format)}${i.iso ? " · ISO " + i.iso : ""} (${i.quantity}×)</option>`).join("");
+  $("#inv-pick-hint").textContent = "";
+}
+$("#inv-pick").onchange = () => {
+  const it = inventory.find((x) => x.id === $("#inv-pick").value);
+  pendingInvId = it ? it.id : null;
+  if (it) {
+    $("#f-film").value = it.film; $("#f-format").value = it.format;
+    if (it.iso) { $("#f-iso").value = it.iso; eiAuto = true; syncEi(); }
+    $("#inv-pick-hint").textContent = `Wird beim Speichern aus dem Vorrat abgezogen (danach ${it.quantity - 1} übrig). Belichtest du mit anderer ISO, ändere die EI.`;
+  } else $("#inv-pick-hint").textContent = "";
+};
+function startRollFromInventory(id) {
+  openRoll(null);
+  if (!$("#inv-pick-wrap").classList.contains("hidden")) { $("#inv-pick").value = id; $("#inv-pick").onchange(); }
+}
+async function useFromInventory(id) {
+  const { data } = await db.from("inventory").select("quantity").eq("id", id).single();
+  pendingInvId = null;
+  if (!data) return;
+  if (data.quantity <= 1) await db.from("inventory").delete().eq("id", id);
+  else await db.from("inventory").update({ quantity: data.quantity - 1 }).eq("id", id);
+}
 
 /* ---------- Frames (Einzelbilder) ---------- */
 let frames = [], editingFrameId = null;
