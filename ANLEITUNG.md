@@ -114,8 +114,8 @@ Diesen Code lädst du nirgends hoch. Er wird nur im SQL Editor ausgeführt.
 **Neuen Film einlegen**
 1. In der App: **Meine Filme**, dann **Neuer Film**. Oder im Reiter **Vorrat** bei einem Film auf **Einlegen** tippen.
 2. Oben im Dialog wählst du **Aus dem Vorrat wählen**. Filmname, ISO und Format werden ausgefüllt. Beim Speichern wird der Film automatisch aus dem Vorrat abgezogen, bei 0 verschwindet er aus der Liste. Ergänze noch die Kamera. Der Status steht schon auf **geladen**.
-3. **Belichtest du mit anderer ISO?** Dann änderst du einfach das Feld **Belichtet mit (EI)**. Die ISO des Films bleibt stehen, die EI folgt ihr automatisch, bis du sie selbst änderst. Die App zeigt dir sofort „Push +1 Blende“ bzw. „Pull −1 Blende“ an, und auf der Filmkarte steht z. B. „ISO 400 → EI 800“.
-3. **Speichern** klicken. Der Dialog bleibt offen und springt zu **Bilder (Frames)**.
+3. **Belichtest du mit anderer ISO?** Ändere das Feld **Belichtet mit (EI)**. Die Nenn-ISO des Films bleibt unverändert. Die App zeigt zunächst eine mögliche Push-/Pull-Entwicklung an; eine andere EI allein verpflichtet aber nicht zu einer veränderten Entwicklung. **Bei abgelaufenem Film**, den du bewusst stärker belichtest, aktiviere **„EI wegen Alterung angepasst (kein automatischer Pull)“**. Beispiel: Portra 400, abgelaufen 1998, mit EI 50 belichtet: keine automatische Pull-Empfehlung; bei C-41-Farbnegativ ist Standard-C-41 meist der sinnvollere Ausgangspunkt. Der Zustand hängt stark von der Lagerung ab. Die konkrete Entwicklung legst du separat fest.
+4. **Speichern** klicken. Der Dialog bleibt offen und springt zu **Bilder (Frames)**.
 
 **Pro Bild notieren (das ist dein Analogbook)**
 1. Trage ein: Blende, Belichtungszeit, Objektiv, Motiv, Ort und **Warum so?** (z. B. „Gegenlicht, +1 Blende, damit der Schatten Zeichnung behält“).
@@ -146,3 +146,13 @@ Diesen Code lädst du nirgends hoch. Er wird nur im SQL Editor ausgeführt.
 | Bestätigungslink führt ins Leere | Site URL in Supabase eintragen (Schritt 8) oder **Confirm email** ausschalten (Schritt 3). |
 
 **Sicherheit:** Der Publishable Key darf öffentlich sein. Den Secret- oder service_role-Key trägst du nirgends ein. `setup.sql` enthält keine persönlichen Daten.
+
+## Belichtung, Alterung und Entwicklung – wichtige Unterscheidung
+
+- **ISO** ist die Nennempfindlichkeit; **EI** ist die eingestellte Belichtungsempfindlichkeit. Niedrigerer EI bedeutet mehr Licht, höherer EI weniger Licht.
+- **Push/Pull** bezeichnet eine *bewusst geänderte Entwicklung* und nicht allein eine andere Kameraeinstellung. Die automatische Anzeige ist nur eine Orientierung, keine verbindliche Entwicklungsanweisung.
+- **Abgelaufene Filme:** Alterung kann Empfindlichkeit, Schleier und Farben verändern. Bei unbekannter Lagerung gibt es keine verlässliche ISO- oder Zeitformel. Mehr Belichtung kann helfen, Schattenzeichnung zu erhalten, macht Alterung aber nicht rückgängig. Die Alterskorrektur-Option unterdrückt eine automatische Pull-Empfehlung.
+- **Farbnegativ C-41:** Bei einem überbelichteten alten Portra ist reguläre C-41-Entwicklung ohne automatische Zeitverkürzung ein vernünftiger Ausgangspunkt, keine Erfolgsgarantie. Halte dich bei Zeiten, Temperatur und Prozessschritten an die Anleitung des **konkret verwendeten Chemie-Kits**; nicht jedes Kit verwendet identische Bleich-, Fixier- oder Stabilisierungsabläufe.
+- **Schwarzweiß:** Push-/Pull-Zeiten hängen von Film, Entwickler, Verdünnung, Temperatur und gewünschtem Ergebnis ab. Pauschale Prozentwerte sind keine zuverlässige Rezeptur. Herstellerdatenblatt geht vor.
+
+**Fachquellen:** [ILFORD – Processing your first black and white film](https://www.ilfordphoto.com/wp/wp-content/uploads/2017/04/Processing-your-first-black-and-white-film.pdf); [KODAK – Processing Cycles for Kodak Chemicals (C-41)](https://www.kodak.com/global/plugins/acrobat/en/service/Zmanuals/z100_2.pdf). Die Empfehlung für einen konkreten abgelaufenen Film ist eine vorsichtige praktische Einschätzung, keine vom Hersteller garantierte Belichtungsregel.
