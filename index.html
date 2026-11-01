@@ -531,6 +531,7 @@
         <div class="wide"><label for="f-film">Filmname *</label><input id="f-film" name="film" required placeholder="z. B. Ilford HP5 Plus" autocomplete="off"></div>
         <div><label for="f-iso">ISO des Films</label><input id="f-iso" name="iso" type="number" min="1" inputmode="numeric" placeholder="400"></div>
         <div><label for="f-ei">Belichtet mit (EI)</label><input id="f-ei" name="ei" type="number" min="1" inputmode="numeric" placeholder="wie ISO"></div>
+        <div class="wide"><label><input id="f-age-correction" type="checkbox" style="width:auto"> EI wegen Alterung angepasst (kein automatischer Pull)</label></div>
         <div class="wide hint" id="ei-hint"></div>
         <div><label for="f-format">Format</label><input id="f-format" name="format" placeholder="35mm / 120 / 4x5"></div>
         <div><label for="f-camera">Kamera</label><select id="f-camera" name="camera_id"></select></div>
@@ -821,6 +822,7 @@ function openRoll(id) {
   const legacy = !!(r && !r.ei && r.push_pull);   // älterer Eintrag mit freier Push/Pull-Notiz
   eiAuto = !legacy && !(r && r.ei && r.iso && r.ei !== r.iso);
   if (r && r.ei) $("#f-ei").value = r.ei; else if (legacy) $("#f-ei").value = ""; else syncEi();
+  $("#f-age-correction").checked = !!(r && /^Alterskorrektur\b/.test(r.push_pull || ""));
   updateEiHint();
   if (legacy) $("#ei-hint").textContent = "Bisher notiert: " + r.push_pull + ". Trage die EI ein, um es zu ersetzen.";
   $("#gallery").innerHTML = ""; msg($("#up-msg"), "");
@@ -840,7 +842,9 @@ form.onsubmit = async (e) => {
   row.iso = row.iso ? parseInt(row.iso, 10) : null;
   row.temp_c = row.temp_c ? parseFloat(row.temp_c) : null;
   row.ei = row.ei ? parseInt(row.ei, 10) : null;
-  if (row.ei && row.iso) row.push_pull = pushPullLabel(row.iso, row.ei);   // sonst bleibt ein älterer Eintrag unberührt
+  if (row.ei && row.iso) row.push_pull = $("#f-age-correction").checked && row.ei !== row.iso
+    ? `Alterskorrektur (EI ${row.ei}, Nenn-ISO ${row.iso}); Entwicklung separat festlegen`
+    : pushPullLabel(row.iso, row.ei);   // sonst bleibt ein älterer Eintrag unberührt
 
   const isNew = !editingId;
   const res = isNew
@@ -880,6 +884,7 @@ function updateEiHint() {
   const iso = parseFloat($("#f-iso").value), ei = parseFloat($("#f-ei").value), hint = $("#ei-hint");
   if (!(iso > 0) || !(ei > 0)) { hint.textContent = "Trage die ISO des Films ein. Die EI ist der Wert, mit dem du tatsächlich belichtest."; return; }
   const stops = Math.log2(ei / iso);
+  if ($("#f-age-correction").checked && Math.abs(stops) >= 0.25) { hint.textContent = "EI zur Alterskorrektur: keine automatische Push-/Pull-Empfehlung. Entwicklung anhand Filmtyp und Chemie prüfen; C-41 meist Standardprozess."; return; }
   if (Math.abs(stops) < 0.25) { hint.textContent = "Normal belichtet (EI = ISO)."; return; }
   const n = (Math.round(Math.abs(stops) * 2) / 2).toLocaleString("de-DE");
   hint.textContent = stops > 0
@@ -895,6 +900,7 @@ function pushPullLabel(iso, ei) {
 }
 $("#f-iso").addEventListener("input", syncEi);
 $("#f-ei").addEventListener("input", () => { eiAuto = false; updateEiHint(); });
+$("#f-age-correction").addEventListener("change", updateEiHint);
 
 /* ---------- Vorrat (Inventarliste) ---------- */
 let inventory = [], editingInvId = null, pendingInvId = null;
