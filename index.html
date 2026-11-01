@@ -986,7 +986,7 @@ function renderInventory() {
         </div>
         <div class="inv-btns">
           <button type="button" class="btn small" data-act="use" data-id="${i.id}">Einlegen</button>
-          <button type="button" class="btn ghost small" data-act="edit" data-id="${i.id}">Bearbeiten</button>
+          <button type="button" class="btn ghost small" data-act="edit" data-id="${i.id}">Bearbeiten</button>\n          ${i.quantity > 1 ? `<button type="button" class="btn ghost small" data-act="split" data-id="${i.id}">Aufteilen</button>` : ""}
           <button type="button" class="btn danger small" data-act="del" data-id="${i.id}">Löschen</button>
         </div></div>`;
     }).join("");
@@ -1047,6 +1047,36 @@ $("#inv-list").onclick = async (e) => {
   if (act === "plus") await setQty(it, it.quantity + 1);
   else if (act === "minus") await setQty(it, it.quantity - 1);
   else if (act === "use") startRollFromInventory(it.id);
+  else if (act === "split") {
+    if (it.quantity < 2) return;
+    const amountText = prompt(`Wie viele der ${it.quantity} Filme möchtest du mit einem eigenen Ablaufdatum abtrennen? (1 bis ${it.quantity - 1})`, "1");
+    if (amountText === null) return;
+    const amount = Number(amountText);
+    if (!Number.isInteger(amount) || amount < 1 || amount >= it.quantity) { alert("Bitte eine gültige Anzahl eingeben."); return; }
+    const newExpiry = prompt("Ablaufdatum der abgetrennten Filme (z. B. 01/2029):", it.expires || "");
+    if (newExpiry === null) return;
+    const trimmed = newExpiry.trim();
+    if (!/^(0?[1-9]|1[0-2])[./-]20\\d{2}$/.test(trimmed) && !/^20\\d{2}$/.test(trimmed)) {
+      alert("Bitte ein gültiges Ablaufdatum als MM/JJJJ oder JJJJ eingeben."); return;
+    }
+    const normalized = trimmed.replace(/^(\\d)[./-]/, "0$1/").replace(/[.-]/g, "/");
+    if (normalized === (it.expires || "")) { alert("Das neue Ablaufdatum ist identisch. Es muss nichts aufgeteilt werden."); return; }
+    const duplicate = inventory.find(x => x.id !== it.id && x.film === it.film && x.format === it.format && x.iso === it.iso && x.expires === normalized);
+    const newRow = { film: it.film, format: it.format, iso: it.iso, quantity: amount, expires: normalized, notes: it.notes };
+    // Zuerst abtrennen, danach den Ursprungsbestand reduzieren; bei Fehler rückgängig machen.
+    const inserted = duplicate
+      ? await db.from("inventory").update({ quantity: duplicate.quantity + amount }).eq("id", duplicate.id)
+      : await db.from("inventory").insert(newRow).select("id").single();
+    if (inserted.error) { alert("Aufteilen fehlgeschlagen: " + inserted.error.message); return; }
+    const reduced = await db.from("inventory").update({ quantity: it.quantity - amount }).eq("id", it.id);
+    if (reduced.error) {
+      if (duplicate) await db.from("inventory").update({ quantity: duplicate.quantity }).eq("id", duplicate.id);
+      else if (inserted.data?.id) await db.from("inventory").delete().eq("id", inserted.data.id);
+      alert("Aufteilen fehlgeschlagen: " + reduced.error.message); return;
+    }
+    await loadInventory();
+  }
+
   else if (act === "edit") {
     editingInvId = it.id;
     $("#inv-details").open = true;
