@@ -256,7 +256,6 @@
     <div class="row"><label for="pw">Passwort (mind. 6 Zeichen)</label><input id="pw" type="password" autocomplete="current-password"></div>
     <div class="actions">
       <button class="btn" id="login">Anmelden</button>
-      <button class="btn ghost" id="signup">Konto erstellen</button>
     </div>
     <div class="msg" id="auth-msg" role="status"></div>
     <p class="hint" style="margin-top:1rem"><a href="datenbank.html">Zur Entwicklungsdatenbank (ohne Anmeldung)</a></p>
@@ -703,12 +702,6 @@ $("#login").onclick = async () => {
   msg($("#auth-msg"), "");
   const { error } = await db.auth.signInWithPassword({ email: $("#email").value.trim(), password: $("#pw").value });
   if (error) msg($("#auth-msg"), "Anmeldung fehlgeschlagen: " + error.message, "err");
-};
-$("#signup").onclick = async () => {
-  msg($("#auth-msg"), "");
-  const { data, error } = await db.auth.signUp({ email: $("#email").value.trim(), password: $("#pw").value });
-  if (error) return msg($("#auth-msg"), "Registrierung fehlgeschlagen: " + error.message, "err");
-  if (!data.session) msg($("#auth-msg"), "Fast geschafft: Bestätige deine E-Mail-Adresse über den Link in deinem Postfach.", "ok");
 };
 $("#logout").onclick = () => db.auth.signOut();
 
