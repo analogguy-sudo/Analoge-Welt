@@ -67,6 +67,7 @@
   .rcard dt { color: var(--muted); } .rcard dd { margin: 0; }
   .foot { margin-top: 2.5rem; color: var(--muted); font-size: .85rem; }
 </style>
+<link rel="stylesheet" href="weich.css">
 </head>
 <body>
 <div class="strip" aria-hidden="true"></div>
@@ -75,14 +76,14 @@
     <h1>Analoge Welt<br>der Fotografie</h1>
     <p class="sub">Entwicklungsdatenbank: welcher Film in welchem Entwickler, wie lange</p>
   </div>
-  <a class="btn" href="index.html">Zur Filmsammlung</a>
+  <a class="btn ghost" href="index.html">Zur Filmsammlung</a>
 </header>
 
 <main>
   <section class="picker" aria-label="Auswahl">
     <div><label for="sel-film">Film</label><select id="sel-film"></select></div>
     <div><label for="sel-dev">Entwickler</label><select id="sel-dev"></select></div>
-    <button class="btn" id="reset" type="button">Zurücksetzen</button>
+    <button class="btn ghost" id="reset" type="button">Zurücksetzen</button>
   </section>
 
   <div id="status" role="status"></div>

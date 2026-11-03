@@ -166,10 +166,16 @@
   .inv-btns { display: flex; gap: .4rem; flex-wrap: wrap; }
   .st-expired { color: var(--safelight); margin-top: .3rem; }
 
-  .inv-group { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin-bottom: .7rem; padding: .3rem .8rem; }\n  .inv-group summary { cursor: pointer; padding: .65rem .2rem; transition: color .18s ease, background-color .18s ease; border-radius: 5px; }
+  .inv-group { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin-bottom: .7rem; padding: .3rem .8rem; }
+  .inv-group summary { cursor: pointer; padding: .65rem .2rem; transition: color .18s ease, background-color .18s ease; border-radius: 5px; }
   .inv-group summary:hover, .inv-group summary:focus-visible { color: var(--amber); background: rgba(200, 145, 64, .09); }
   /* Nativer Hand-Cursor wie bei den übrigen Navigationslinks. */
-  .inv-group summary { cursor: pointer; }\n  .inv-group summary strong { font-family: var(--serif); font-size: 1.25rem; }\n  .inv-group summary .hint { display: block; margin-top: .2rem; }\n  .inv-group .inv-item { margin-top: .5rem; }\n\n  /* Frames */
+  .inv-group summary { cursor: pointer; }
+  .inv-group summary strong { font-family: var(--serif); font-size: 1.25rem; }
+  .inv-group summary .hint { display: block; margin-top: .2rem; }
+  .inv-group .inv-item { margin-top: .5rem; }
+
+  /* Frames */
   .fr-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin: .8rem 0 .2rem; }
   .frtable { border-collapse: collapse; width: 100%; min-width: 640px; font-size: .9rem; }
   .frtable th, .frtable td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -236,6 +242,7 @@
     .card, .btn { transition: border-color .15s, filter .15s; }
   }
 </style>
+<link rel="stylesheet" href="weich.css">
 </head>
 <body>
 <div class="strip" aria-hidden="true"></div>

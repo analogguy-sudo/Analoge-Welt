@@ -1,0 +1,111 @@
+/* Weiche Oberfläche mit leichtem 3D-Effekt.
+   Wird nach dem Seiten-CSS geladen und überschreibt nur Rundungen, Schatten und Verläufe. */
+:root {
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  /* Licht kommt von oben: helle Kante oben, weicher Schatten nach unten */
+  --hi: inset 0 1px 0 rgba(255, 236, 210, .07);
+  --lift: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 14px -4px rgba(0, 0, 0, .45), 0 18px 36px -12px rgba(0, 0, 0, .55);
+  --lift-hover: 0 2px 4px rgba(0, 0, 0, .35), 0 12px 24px -6px rgba(0, 0, 0, .5), 0 28px 50px -14px rgba(0, 0, 0, .6);
+  --sink: inset 0 2px 5px rgba(0, 0, 0, .45), inset 0 -1px 0 rgba(255, 236, 210, .04);
+  --panel-grad: linear-gradient(180deg, #2a201a 0%, #221913 100%);
+}
+
+/* Warmer Lichtschein statt flachem Hintergrund */
+body {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(224, 145, 47, .10), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(209, 67, 47, .05), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+.strip { box-shadow: 0 4px 12px rgba(0, 0, 0, .4); position: relative; z-index: 1; }
+header.top h1 { text-shadow: 0 2px 10px rgba(0, 0, 0, .5); }
+
+/* Erhabene Flächen */
+.card, .cam, .invbox, .inv-group, .inv-item, .auth, .guide details,
+.picker, .rcard, .box, fieldset, dialog {
+  background: var(--panel-grad);
+  border-color: rgba(255, 220, 180, .07);
+  box-shadow: var(--hi), var(--lift);
+}
+.card, .cam, .inv-item, .guide details, .rcard { border-radius: var(--r-md); }
+.invbox, .inv-group, .auth, .picker, .box, fieldset { border-radius: var(--r-lg); }
+dialog { border-radius: var(--r-lg); box-shadow: var(--hi), 0 30px 80px -10px rgba(0, 0, 0, .8); }
+dialog::backdrop { background: rgba(10, 7, 5, .6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+legend { padding: 0 .6rem; }
+
+/* Verschachtelte Flächen etwas flacher, damit es nicht überladen wirkt */
+.inv-group .inv-item, .invbox .inv-item, dialog fieldset {
+  background: rgba(255, 236, 210, .025);
+  box-shadow: var(--hi), 0 2px 6px -2px rgba(0, 0, 0, .4);
+}
+
+/* Filmkarten heben sich beim Überfahren an und kippen leicht */
+.card { overflow: hidden; transform-origin: 50% 100%; }
+.card::before { border-radius: var(--r-md) var(--r-md) 0 0; }
+.card:hover {
+  border-color: rgba(224, 145, 47, .55);
+  box-shadow: var(--hi), var(--lift-hover), 0 0 0 1px rgba(224, 145, 47, .25);
+  transform: translateY(-4px) perspective(800px) rotateX(2deg);
+}
+.card:active { transform: translateY(-1px); }
+
+/* Buttons wie leicht gewölbte Tasten */
+.btn {
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, #eea245 0%, #d9862a 55%, #c97621 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 240, 210, .45), inset 0 -2px 0 rgba(0, 0, 0, .18),
+              0 2px 4px rgba(0, 0, 0, .35), 0 6px 12px -4px rgba(224, 145, 47, .35);
+}
+.btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.btn:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .3);
+}
+.btn.ghost, .btn.danger {
+  background: linear-gradient(180deg, rgba(255, 236, 210, .06), rgba(255, 236, 210, .015));
+  box-shadow: inset 0 1px 0 rgba(255, 236, 210, .08), 0 2px 5px rgba(0, 0, 0, .3);
+}
+.btn.ghost:active, .btn.danger:active { box-shadow: var(--sink); }
+.qty .btn { border-radius: 50%; }
+
+/* Eingabefelder wirken eingelassen */
+input, select, textarea, pre {
+  border-radius: var(--r-sm);
+  border-color: rgba(0, 0, 0, .35);
+  background: #130f0c;
+  box-shadow: var(--sink);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(224, 145, 47, .6);
+  box-shadow: var(--sink), 0 0 0 3px rgba(224, 145, 47, .18);
+}
+:focus-visible { outline-offset: 3px; border-radius: 6px; }
+input[type="checkbox"], input[type="radio"] { box-shadow: none; }
+
+/* Reiter mit weicher Leuchtkante */
+nav.tabs button[aria-selected="true"] { text-shadow: 0 0 18px rgba(224, 145, 47, .35); }
+
+/* Kleinteile */
+.badge { box-shadow: inset 0 1px 0 rgba(255, 236, 210, .08); background: rgba(255, 236, 210, .03); }
+.empty, .inotice, .err { border-radius: var(--r-md); }
+.shot { border-radius: var(--r-sm); box-shadow: var(--lift); }
+.inv-group summary, .invbox summary { border-radius: var(--r-sm); }
+.frtable tr { border-radius: var(--r-sm); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .card, .btn, .cam, .inv-item, input, select, textarea {
+    transition: transform .22s cubic-bezier(.2, .8, .3, 1), box-shadow .22s ease, border-color .18s, filter .15s;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card:hover, .btn:hover, .btn:active { transform: none; }
+}
+
+/* Handy: Vollbild-Dialog ohne Rundung, Schatten sparsamer */
+@media (max-width: 700px) {
+  dialog { border-radius: 0; box-shadow: none; }
+  .card:hover { transform: none; }
+}
