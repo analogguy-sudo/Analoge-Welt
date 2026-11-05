@@ -24,14 +24,14 @@ body {
 header.top h1 { text-shadow: 0 2px 10px rgba(0, 0, 0, .5); }
 
 /* Erhabene Flächen */
-.card, .cam, .invbox, .inv-group, .inv-item, .auth, .guide details,
+.card, .cam, .invbox, .inv-group, .inv-item, .auth, .guide details, .calc-box,
 .picker, .rcard, .box, fieldset, dialog {
   background: var(--panel-grad);
   border-color: rgba(255, 220, 180, .07);
   box-shadow: var(--hi), var(--lift);
 }
 .card, .cam, .inv-item, .guide details, .rcard { border-radius: var(--r-md); }
-.invbox, .inv-group, .auth, .picker, .box, fieldset { border-radius: var(--r-lg); }
+.invbox, .inv-group, .auth, .picker, .box, .calc-box, fieldset { border-radius: var(--r-lg); }
 dialog { border-radius: var(--r-lg); box-shadow: var(--hi), 0 30px 80px -10px rgba(0, 0, 0, .8); }
 dialog::backdrop { background: rgba(10, 7, 5, .6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 legend { padding: 0 .6rem; }

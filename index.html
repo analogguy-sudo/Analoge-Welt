@@ -196,6 +196,9 @@
   .guide th, .guide td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
   .guide th { color: var(--muted); font-weight: 500; }
   .calc-out { font-family: var(--serif); font-size: 1.4rem; margin: .8rem 0 .6rem; }
+  #view-calc { max-width: 820px; }
+  .calc-box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .4rem 1rem .4rem; margin-bottom: .8rem; }
+  .calc-box h3 { font-family: var(--serif); font-weight: 400; font-size: 1.4rem; margin: .5rem 0 .8rem; }
 
   /* Handy / iPhone */
   fieldset { min-width: 0; }                       /* verhindert, dass Tabellen den Dialog verbreitern */
@@ -275,6 +278,7 @@
       <button role="tab" id="tab-rolls" aria-selected="true">Meine Filme</button>
       <button role="tab" id="tab-inv" aria-selected="false">Vorrat</button>
       <button role="tab" id="tab-cams" aria-selected="false">Kameras</button>
+      <button role="tab" id="tab-calc" aria-selected="false">Rechner</button>
       <button role="tab" id="tab-guide" aria-selected="false">Anleitung</button>
       <a class="tablink" href="datenbank.html">Datenbank ↗</a>
     </nav>
@@ -329,6 +333,27 @@
       <div id="cams"></div>
     </div>
 
+    <div id="view-calc" class="hidden">
+      <p class="hint">Die Ergebnisse sind Richtwerte. Im Zweifel gilt das Datenblatt von Film und Entwickler.</p>
+      <section class="calc-box" id="box-dilution">
+        <h3>Verdünnungsrechner</h3>
+        <div class="grid">
+          <div><label for="calc-vol">Gesamtmenge (ml)</label><input id="calc-vol" type="number" min="1" value="500"></div>
+          <div><label for="calc-ratio">Verdünnung</label><input id="calc-ratio" value="1+50" placeholder="1+50"></div>
+        </div>
+        <p id="calc-out" class="calc-out" aria-live="polite"></p>
+      </section>
+      <section class="calc-box" id="box-push">
+        <h3>Push-/Pull-Rechner</h3>
+        <div class="grid">
+          <div><label for="pp-time">Normale Zeit (min:sek)</label><input id="pp-time" value="10:00"></div>
+          <div><label for="pp-iso">ISO des Films</label><input id="pp-iso" type="number" min="1" value="400"></div>
+          <div><label for="pp-ei">Belichtet mit (EI)</label><input id="pp-ei" type="number" min="1" value="800"></div>
+        </div>
+        <p id="pp-out" class="calc-out" aria-live="polite"></p>
+      </section>
+    </div>
+
     <div id="view-guide" class="hidden guide">
       <p class="hint">Richtwerte für den Einstieg. Maßgeblich sind immer das Datenblatt von Film und Entwickler und deine eigenen Testergebnisse. Ändere beim Testen immer nur eine Sache auf einmal.</p>
 
@@ -362,7 +387,7 @@
         <ul>
           <li><strong>Temperatur:</strong> Je wärmer, desto kürzer die Zeit. Das Datenblatt oder die Massive Dev Chart nennen Zeiten für andere Temperaturen. Halte sie während der Entwicklung konstant (Wasserbad).</li>
           <li><strong>Kippen:</strong> Mehr Bewegung bedeutet mehr Kontrast. Bleibe bei einem Rhythmus, damit deine Ergebnisse vergleichbar bleiben.</li>
-          <li><strong>Push und Pull:</strong> Erklärung, Zeitfaktoren und Rechner stehen im Abschnitt „ISO, EI, Push und Pull“.</li>
+          <li><strong>Push und Pull:</strong> Erklärung und Zeitfaktoren stehen im Abschnitt „ISO, EI, Push und Pull“. <a href="#" data-calc="box-push">Zum Push-/Pull-Rechner</a></li>
           <li><strong>Gleiche Entwickler, andere Zeiten:</strong> Hersteller geben für nominell gleiche Entwickler (z. B. ID-11 und D-76) teilweise unterschiedliche Zeiten an. Nimm das Datenblatt des Entwicklers, den du tatsächlich in der Flasche hast.</li>
           <li><strong>Notiere alles:</strong> Trage Zeit, Temperatur, Entwickler und Kippen in der App ein. So findest du mit der Zeit deine persönlichen Werte.</li>
         </ul>
@@ -394,14 +419,7 @@
           </table>
         </div>
         <p class="hint">Diese groben Prozentwerte sind keine Entwicklungsrezepte und gelten insbesondere nicht pauschal für C-41. Je nach Film und Entwickler weichen sie deutlich ab. Manche Filme (z. B. HP5 Plus, Tri-X) lassen sich gut pushen, andere weniger. Verlässliche Werte stehen im Datenblatt oder in der Massive Dev Chart (siehe Links unten). Notiere deine eigenen Ergebnisse.</p>
-
-        <h3 style="margin-top:1rem">Push-/Pull-Rechner</h3>
-        <div class="grid">
-          <div><label for="pp-time">Normale Zeit (min:sek)</label><input id="pp-time" value="10:00"></div>
-          <div><label for="pp-iso">ISO des Films</label><input id="pp-iso" type="number" min="1" value="400"></div>
-          <div><label for="pp-ei">Belichtet mit (EI)</label><input id="pp-ei" type="number" min="1" value="800"></div>
-        </div>
-        <p id="pp-out" class="calc-out" aria-live="polite"></p>
+        <p><a href="#" data-calc="box-push">Zum Push-/Pull-Rechner</a></p>
       </details>
 
       <details>
@@ -539,20 +557,11 @@
       <details>
         <summary>Chemie und Entsorgung</summary>
         <ul>
-          <li><strong>Einwegentwickler:</strong> Entwickler wie Rodinal verdünnt man frisch und gießt ihn weg (one-shot). Das ergibt gleichbleibende Ergebnisse.</li>
+          <li><strong>Einwegentwickler:</strong> Entwickler wie Rodinal verdünnt man frisch und gießt ihn weg (one-shot). Das ergibt gleichbleibende Ergebnisse. <a href="#" data-calc="box-dilution">Zum Verdünnungsrechner</a></li>
           <li><strong>Fixierer:</strong> Er lässt sich mehrfach nutzen. Zähle die Filme und beachte die Angabe auf der Flasche.</li>
           <li><strong>Entsorgung:</strong> Gebrauchte Entwickler und besonders Fixierer (enthält Silber) gehören nicht in den Abfluss. Gib sie bei der Schadstoffsammlung oder einer Annahmestelle für Chemikalien ab.</li>
           <li><strong>Schutz:</strong> Handschuhe und Schutzbrille tragen und gut lüften.</li>
         </ul>
-      </details>
-
-      <details open>
-        <summary>Verdünnungsrechner</summary>
-        <div class="grid">
-          <div><label for="calc-vol">Gesamtmenge (ml)</label><input id="calc-vol" type="number" min="1" value="500"></div>
-          <div><label for="calc-ratio">Verdünnung</label><input id="calc-ratio" value="1+50" placeholder="1+50"></div>
-        </div>
-        <p id="calc-out" class="calc-out" aria-live="polite"></p>
       </details>
 
       <details>
@@ -739,7 +748,7 @@ async function loadAll() {
 
 /* ---------- Tabs ---------- */
 function showTab(name) {
-  for (const t of ["rolls", "inv", "cams", "guide"]) {
+  for (const t of ["rolls", "inv", "cams", "calc", "guide"]) {
     $("#view-" + t).classList.toggle("hidden", name !== t);
     $("#tab-" + t).setAttribute("aria-selected", name === t);
   }
@@ -747,7 +756,16 @@ function showTab(name) {
 $("#tab-rolls").onclick = () => showTab("rolls");
 $("#tab-cams").onclick = () => showTab("cams");
 $("#tab-inv").onclick = () => showTab("inv");
+$("#tab-calc").onclick = () => showTab("calc");
 $("#tab-guide").onclick = () => showTab("guide");
+// Links aus der Anleitung öffnen den Reiter „Rechner“ beim passenden Rechner
+$("#view-guide").addEventListener("click", (e) => {
+  const link = e.target.closest("a[data-calc]");
+  if (!link) return;
+  e.preventDefault();
+  showTab("calc");
+  document.getElementById(link.dataset.calc).scrollIntoView({ block: "center" });
+});
 
 /* ---------- Verdünnungsrechner ---------- */
 function calcDilution() {
