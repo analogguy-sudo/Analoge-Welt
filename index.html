@@ -216,7 +216,7 @@
   .hb-hit mark { background: rgba(224,145,47,.35); color: inherit; border-radius: 2px; }
 
   .hb-stage { position: relative; z-index: 1; margin: .3rem auto 0; width: calc(var(--pw) * 2); height: var(--ph);
-              perspective: 3200px; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: pointer; }
+              touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: pointer; }
   .hb-stage.single { width: var(--pw); }
   .hb-slot { position: absolute; top: 0; width: var(--pw); height: var(--ph); }
   .hb-slot.l { left: 0; } .hb-slot.r { left: var(--pw); } .hb-slot.s { left: 0; }
@@ -228,19 +228,16 @@
   .side-s > .hb-pg::before { left: 0; width: 4%; background: linear-gradient(to right, rgba(70,45,20,.18), transparent); }
   .side-l > .hb-pg { border-radius: 4px 0 0 4px; } .side-r > .hb-pg { border-radius: 0 4px 4px 0; }
   .hb-pg.cover { border-radius: 2px 6px 6px 2px; }
-  .hb-leaf { position: absolute; top: 0; width: var(--pw); height: var(--ph); transform-style: preserve-3d; z-index: 5; will-change: transform; }
-  .hb-leaf.r, .hb-leaf.s { left: var(--pw); transform-origin: left center; }
-  .hb-leaf.s { left: 0; }
-  .hb-leaf.l { left: 0; transform-origin: right center; }
-  .hb-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-  .hb-face.b { transform: rotateY(180deg); }
-  .hb-shade { position: absolute; inset: 0; pointer-events: none; z-index: 3; opacity: 0;
-              background: linear-gradient(to right, rgba(25,15,5,.55), rgba(25,15,5,.2)); }
-  .hb-face.side-l .hb-shade { background: linear-gradient(to left, rgba(25,15,5,.55), rgba(25,15,5,.2)); }
-  .hb-cast { position: absolute; top: 0; width: var(--pw); height: var(--ph); pointer-events: none; z-index: 4; opacity: 0;
-             background: linear-gradient(to right, rgba(0,0,0,.45), transparent 55%); }
-  .hb-cast.r, .hb-cast.s { left: var(--pw); } .hb-cast.s { left: 0; }
-  .hb-cast.l { left: 0; background: linear-gradient(to left, rgba(0,0,0,.45), transparent 55%); }
+  /* Umblättern wie in einem Buch: die Seite rollt sich an der Ecke ein */
+  .hb-curl { position: absolute; top: 0; width: var(--pw); height: var(--ph); z-index: 5; pointer-events: none; }
+  .hb-curl.r { left: var(--pw); } .hb-curl.s { left: 0; }
+  .hb-curl > div { position: absolute; top: 0; left: 0; width: var(--pw); height: var(--ph); }
+  .hb-curl .hb-cw > div { position: absolute; transform-origin: 0 50%; }
+  .hb-flapwrap { filter: drop-shadow(0 0 7px rgba(0,0,0,.28)); }
+  .hb-flap { position: absolute; left: 0; top: 0; width: var(--pw); height: var(--ph); transform-origin: 0 0; }
+  .hb-flap .hb-pg { box-shadow: none; }
+  .hb-flap .hb-veil { position: absolute; inset: 0; background: rgba(243,234,215,.86); z-index: 3; }
+  body.hb-full .hb-wrap { overflow: hidden; }
 
   .hb-head, .hb-num { position: absolute; left: var(--px); right: var(--px); text-align: center; color: var(--ink-2);
                       font: .66rem/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; white-space: nowrap;
@@ -1128,83 +1125,136 @@ function hbGoto(page) {
   hbRender();
 }
 
-/* Umblättern: ein Blatt dreht sich um den Buchrücken, Vorder- und Rückseite sind echte Seiten */
-function hbFlipStart(dir) {
+/* Umblättern: die Seite knickt entlang einer Linie um und rollt sich ein.
+   Geometrie: Die gegriffene Ecke C wandert zum Punkt M. Die Knicklinie ist die Mittelsenkrechte von C und M.
+   Was hinter der Linie liegt, wird an ihr gespiegelt (Rückseite), darunter erscheint die nächste Seite. */
+function hbClipHalf(poly, P, n, keepPos) {
+  const out = [], side = (q) => ((q[0] - P[0]) * n[0] + (q[1] - P[1]) * n[1]) * (keepPos ? 1 : -1);
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length], sa = side(a), sb = side(b);
+    if (sa >= 0) out.push(a);
+    if ((sa >= 0) !== (sb >= 0)) { const t = sa / (sa - sb); out.push([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]); }
+  }
+  return out;
+}
+const hbPoly = (pts) => pts.length >= 3 ? "polygon(" + pts.map((q) => `${q[0].toFixed(1)}px ${q[1].toFixed(1)}px`).join(",") + ")" : "polygon(0 0,0 0,0 0)";
+
+// Baut die Ebenen für ein Umblättern vorwärts von Position `from` (für rückwärts wird es rückwärts abgespielt)
+function hbCurlSetup(from, corner) {
+  const st = $("#hb-stage"), single = HB.mode === "single", W = HB.W, H = HB.H;
+  const mk = (cls) => { const d = document.createElement("div"); if (cls) d.className = cls; return d; };
+  const curl = mk("hb-curl " + (single ? "s" : "r"));
+  const under = mk("hb-pg-under side-" + (single ? "s" : "r")), front = mk("side-" + (single ? "s" : "r"));
+  const cast = mk("hb-cw"), castG = mk(), flapWrap = mk("hb-flapwrap"), flap = mk("hb-flap"), shade = mk("hb-cw"), shadeG = mk();
+  let frontPg, backPg;
+  if (single) {
+    frontPg = hbPage(from); under.append(hbPage(from + 1) || hbBlank());
+    backPg = frontPg.cloneNode(true); const v = mk("hb-veil"); backPg.append(v);   // Rückseite: Text schimmert gespiegelt durch
+    st.replaceChildren(curl);
+  } else {
+    frontPg = hbPage(2 * from) || hbBlank(); under.append(hbPage(2 * from + 2) || hbBlank());
+    backPg = hbPage(2 * from + 1) || hbBlank(); flap.className += " side-l";
+    st.replaceChildren(hbSlot("l side-l", hbPage(2 * from - 1)), curl);
+  }
+  front.append(frontPg); flap.append(backPg); flapWrap.append(flap); cast.append(castG); shade.append(shadeG);
+  curl.append(under, cast, front, flapWrap, shade);
+  const C = corner === "top" ? [W, 0] : [W, H], D = Math.hypot(W, H) * 2;
+  const rect = [[0, 0], [W, 0], [W, H], [0, H]];
+  const grad = (g, P, n, css) => {   // Verlauf, der an der Knicklinie beginnt und in Richtung n läuft
+    g.style.cssText = `left:${P[0]}px;top:${P[1] - D}px;width:${D}px;height:${2 * D}px;transform-origin:0 ${D}px;` +
+      `transform:rotate(${Math.atan2(n[1], n[0])}rad);background:${css}`;
+  };
+  // p: 0 = Seite liegt flach, 1 = ganz umgeblättert; lift: Höhe der Ecke (Finger)
+  const set = (p, lift = 0) => {
+    const lifted = Math.sin(Math.PI * Math.min(1, p)) * H * .16;
+    const M = [W - 2 * W * p, C[1] + (corner === "top" ? lifted : -lifted) + lift];
+    const dx = C[0] - M[0], dy = C[1] - M[1], len = Math.hypot(dx, dy);
+    if (len < .5) { front.style.clipPath = ""; flapWrap.style.display = shade.style.display = cast.style.display = "none"; return; }
+    flapWrap.style.display = shade.style.display = cast.style.display = "";
+    const n = [dx / len, dy / len], P = [(C[0] + M[0]) / 2, (C[1] + M[1]) / 2];
+    const fold = hbClipHalf(rect, P, n, true), keep = hbClipHalf(rect, P, n, false);
+    front.style.clipPath = hbPoly(keep);
+    cast.style.clipPath = hbPoly(fold);
+    // Spiegelung an der Knicklinie
+    const r11 = 1 - 2 * n[0] * n[0], r12 = -2 * n[0] * n[1], r22 = 1 - 2 * n[1] * n[1], k = 2 * (P[0] * n[0] + P[1] * n[1]);
+    const tx = k * n[0], ty = k * n[1];
+    const refl = (q) => [r11 * q[0] + r12 * q[1] + tx, r12 * q[0] + r22 * q[1] + ty];
+    if (single) {
+      flap.style.transform = `matrix(${r11},${r12},${r12},${r22},${tx},${ty})`;
+      flap.style.clipPath = hbPoly(fold);
+    } else {   // echte Rückseite (nächste linke Seite), nicht spiegelverkehrt
+      flap.style.transform = `matrix(${-r11},${-r12},${r12},${r22},${r11 * W + tx},${r12 * W + ty})`;
+      flap.style.clipPath = hbPoly(fold.map((q) => [W - q[0], q[1]]));
+    }
+    shade.style.clipPath = hbPoly(fold.map(refl));
+    const w = Math.max(12, Math.min(len * .45, W * .45));
+    grad(shadeG, P, [-n[0], -n[1]], `linear-gradient(to right, rgba(40,25,10,.22), rgba(255,250,240,.28) ${w * .3}px, rgba(255,250,240,0) ${w * .7}px, rgba(40,25,10,.08) ${w * 1.4}px)`);
+    grad(castG, P, n, `linear-gradient(to right, rgba(0,0,0,.42), rgba(0,0,0,.14) ${w * .25}px, rgba(0,0,0,0) ${w * .7}px)`);
+  };
+  return { set };
+}
+
+// Ein Umblättern; dir = 1 vor, -1 zurück. Gibt ein Objekt zum Steuern zurück (Finger) oder null.
+function hbFlipStart(dir, corner = "bottom") {
   if (HB.busy || !HB.pages) return null;
   const np = HB.pos + dir;
   if (np < 0 || np > hbMaxPos()) return null;
   HB.busy = true;
-  const st = $("#hb-stage"), s = HB.pos, single = HB.mode === "single";
-  const leaf = document.createElement("div"), cast = document.createElement("div");
-  const face = (cls, el) => { const f = document.createElement("div"); f.className = "hb-face " + cls; f.append(el || hbBlank()); const sh = document.createElement("div"); sh.className = "hb-shade"; f.append(sh); return f; };
-  let front, back, angle;
-  if (single) {
-    st.replaceChildren(hbSlot("s side-s", hbPage(dir > 0 ? s + 1 : s)));
-    front = face("f side-s", hbPage(dir > 0 ? s : s - 1)); back = face("b", hbBlank());
-    leaf.className = "hb-leaf s"; cast.className = "hb-cast s";
-    angle = dir > 0 ? (p) => -180 * p : (p) => -180 * (1 - p);
-  } else if (dir > 0) {
-    st.replaceChildren(hbSlot("l side-l", hbPage(2 * s - 1)), hbSlot("r side-r", hbPage(2 * s + 2)));
-    front = face("f side-r", hbPage(2 * s)); back = face("b side-l", hbPage(2 * s + 1));
-    leaf.className = "hb-leaf r"; cast.className = "hb-cast r"; angle = (p) => -180 * p;
-  } else {
-    st.replaceChildren(hbSlot("l side-l", hbPage(2 * s - 3)), hbSlot("r side-r", hbPage(2 * s)));
-    front = face("f side-l", hbPage(2 * s - 1)); back = face("b side-r", hbPage(2 * s - 2));
-    leaf.className = "hb-leaf l"; cast.className = "hb-cast l"; angle = (p) => 180 * p;
-  }
-  leaf.append(front, back); st.append(cast, leaf);
-  const turnsAway = !(single && dir < 0);
-  const fs = front.lastChild, bs = back.lastChild;
-  const set = (p) => {
-    const t = turnsAway ? p : 1 - p;   // wie weit das Blatt von „flach, Vorderseite oben“ weg ist
-    leaf.style.transform = `rotateY(${angle(p)}deg)`;
-    fs.style.opacity = Math.min(1, t * 1.1);
-    bs.style.opacity = Math.min(1, (1 - t) * 1.1);
-    cast.style.opacity = turnsAway ? (1 - p) * .8 : p * .6;
-  };
-  set(0);
-  return {
-    dir, set,
-    finish(commit, ms = 520) {
+  const c = hbCurlSetup(dir > 0 ? HB.pos : np, corner);
+  let cur = dir > 0 ? 0 : 1, lift = 0;      // rückwärts: die vorige Seite liegt anfangs ganz umgeblättert
+  c.set(cur);
+  const self = {
+    dir,
+    // Fortschritt in Blätterrichtung (0 … 1), lift = senkrechte Fingerbewegung
+    set(t, l = 0) { cur = dir > 0 ? t : 1 - t; lift = l; c.set(cur, lift); },
+    finish(commit, ms = 560) {
+      const from = cur, to = (dir > 0) === commit ? 1 : 0, l0 = lift, t0 = performance.now();
       if (hbReduced) ms = 0;
-      const tr = `${ms}ms cubic-bezier(.3,.7,.3,1)`;
-      leaf.style.transition = "transform " + tr;
-      [fs, bs, cast].forEach((el) => { el.style.transition = "opacity " + tr; });
-      void leaf.offsetWidth;
-      set(commit ? 1 : 0);
-      setTimeout(() => { if (commit) HB.pos = np; HB.busy = false; hbRender(); }, ms + 30);
+      let done = false;
+      const end = () => { if (done) return; done = true; if (commit) HB.pos = np; HB.busy = false; hbRender(); };
+      const step = (now) => {
+        if (done) return;
+        const k = ms ? Math.min(1, (now - t0) / ms) : 1, e = 1 - Math.pow(1 - k, 3);
+        c.set(from + (to - from) * e, l0 * (1 - e));
+        if (k < 1) requestAnimationFrame(step); else end();
+      };
+      requestAnimationFrame(step);
+      setTimeout(end, ms + 300);   // falls der Browser Animationen pausiert
     },
   };
+  return self;
 }
 function hbTurn(dir) { const f = hbFlipStart(dir); if (f) f.finish(true); }
 
-// Wischen (Finger oder Maus): das Blatt folgt der Bewegung; Tippen blättert
+// Wischen (Finger oder Maus): die Seite folgt der Bewegung; Tippen blättert
 (() => {
   const st = $("#hb-stage");
   let d = null;
   st.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || HB.busy || !HB.pages) return;
-    d = { x: e.clientX, y: e.clientY, lx: e.clientX, lt: performance.now(), vx: 0, p: 0, flip: null, id: e.pointerId };
+    const r = st.getBoundingClientRect();
+    d = { x: e.clientX, y: e.clientY, lx: e.clientX, lt: performance.now(), vx: 0, t: 0, flip: null, id: e.pointerId,
+          top: (e.clientY - r.top) / r.height < .4 };
   });
   st.addEventListener("pointermove", (e) => {
     if (!d || e.pointerId !== d.id) return;
     const dx = e.clientX - d.x, dy = e.clientY - d.y, now = performance.now();
     if (!d.flip) {
       if (Math.abs(dy) > 16 && Math.abs(dy) > Math.abs(dx)) { d = null; return; }
-      if (Math.abs(dx) < 10) return;
-      d.flip = hbFlipStart(dx < 0 ? 1 : -1);
+      if (Math.abs(dx) < 8) return;
+      d.flip = hbFlipStart(dx < 0 ? 1 : -1, d.top ? "top" : "bottom");
       if (!d.flip) { d = null; return; }
       try { st.setPointerCapture(e.pointerId); } catch {}
     }
     d.vx = (e.clientX - d.lx) / Math.max(1, now - d.lt); d.lx = e.clientX; d.lt = now;
-    const span = HB.mode === "single" ? HB.W * .85 : HB.W * 1.5;
-    d.p = Math.min(1, Math.max(0, (-dx * d.flip.dir) / span));
-    d.flip.set(d.p);
+    const span = HB.mode === "single" ? HB.W * 1.1 : HB.W * 1.6;
+    d.t = Math.min(1, Math.max(0, (-dx * d.flip.dir) / span));
+    d.flip.set(d.t, Math.max(-HB.H * .2, Math.min(HB.H * .2, dy * .5)));
   });
   const end = (e) => {
     if (!d || e.pointerId !== d.id) return;
     const g = d; d = null;
-    if (g.flip) { g.flip.finish(g.p > .33 || -g.vx * g.flip.dir > .45, 340); return; }
+    if (g.flip) { g.flip.finish(g.t > .3 || -g.vx * g.flip.dir > .4, 380); return; }
     if (e.type !== "pointerup") return;
     const r = st.getBoundingClientRect(), x = (e.clientX - r.left) / r.width;
     if (HB.mode === "single") { if (x > .55) hbTurn(1); else if (x < .45) hbTurn(-1); }
