@@ -196,38 +196,107 @@
   .guide table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: .92rem; }
   .guide th, .guide td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
   .guide th { color: var(--muted); font-weight: 500; }
-  /* Handbuch (nur Admin) */
-  #view-hb { max-width: 820px; }
-  .hb-bar { position: sticky; top: 0; z-index: 4; background: var(--bg); display: flex; gap: .5rem; flex-wrap: wrap;
-            align-items: center; padding: .6rem 0; border-bottom: 1px solid var(--line); }
-  .hb-bar select { flex: 2 1 240px; width: auto; min-width: 0; }
-  .hb-bar input[type=search] { flex: 1 1 180px; width: auto; min-width: 0; }
+  /* Handbuch (nur Admin): Buchansicht mit Umblättern */
+  #view-hb { --paper: #f3ead7; --ink: #2b2018; --ink-2: #74624f; --accent: #9a5a14; }
+  .hb-bar { position: sticky; top: 0; z-index: 8; background: var(--bg); display: flex; gap: .5rem; flex-wrap: wrap;
+            align-items: center; padding: .6rem 0; }
+  .hb-bar select { flex: 2 1 220px; width: auto; min-width: 0; }
+  .hb-bar input[type=search] { flex: 1 1 150px; width: auto; min-width: 0; }
   .hb-bar .btn { white-space: nowrap; margin: 0; }
-  .hb-meta { color: var(--muted); font-size: .85rem; margin: .5rem 0 0; }
-  .hb-hits { margin: .6rem 0; }
+  .hb-close { display: none; }
+  .hb-hits { position: absolute; left: 0; right: 0; top: 100%; max-height: 60vh; overflow-y: auto; z-index: 9;
+             background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .5rem;
+             box-shadow: 0 14px 34px rgba(0,0,0,.55); }
   .hb-hits:empty { display: none; }
   .hb-hits p { color: var(--muted); font-size: .9rem; margin: .2rem 0 .5rem; }
-  .hb-hit { display: block; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--line);
+  .hb-hit { display: block; width: 100%; text-align: left; background: var(--bg); border: 1px solid var(--line);
             border-radius: 6px; padding: .45rem .7rem; margin-bottom: .4rem; cursor: pointer; color: var(--text); }
   .hb-hit:hover { border-color: var(--muted); }
   .hb-hit b { display: block; font-weight: 500; color: var(--amber); font-size: .85rem; }
-  .hb-hit mark, .hb-body mark { background: rgba(224,145,47,.35); color: inherit; border-radius: 2px; }
-  .hb-body { line-height: 1.6; }
-  .hb-body h2, .hb-body h3, .hb-body h4 { scroll-margin-top: 4.5rem; }
-  .hb-body h2 { font-size: 2.2rem; margin: 2.6rem 0 .6rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--amber); }
-  .hb-body h2:first-child { border-top: 0; margin-top: 1rem; }
-  .hb-body h3 { font-size: 1.6rem; margin: 2rem 0 .4rem; }
-  .hb-body h4 { font-size: 1.25rem; margin: 1.4rem 0 .3rem; color: var(--muted); }
-  .hb-body p, .hb-body li { max-width: 70ch; }
-  .hb-body ul, .hb-body ol { padding-left: 1.25rem; margin: .4rem 0 .9rem; }
-  .hb-body li { margin-bottom: .45rem; }
-  .hb-body hr { border: 0; border-top: 1px solid var(--line); margin: 1.5rem 0; }
-  .hb-body table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: .92rem; }
-  .hb-body th, .hb-body td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
-  .hb-body th { color: var(--muted); font-weight: 500; }
-  .hb-flash { animation: hbflash 2s ease-out; }
-  @keyframes hbflash { from { background: rgba(224,145,47,.3); } to { background: transparent; } }
-  .hb-top { position: fixed; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom)); z-index: 6; }
+  .hb-hit mark { background: rgba(224,145,47,.35); color: inherit; border-radius: 2px; }
+
+  .hb-stage { position: relative; z-index: 1; margin: .3rem auto 0; width: calc(var(--pw) * 2); height: var(--ph);
+              perspective: 3200px; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: pointer; }
+  .hb-stage.single { width: var(--pw); }
+  .hb-slot { position: absolute; top: 0; width: var(--pw); height: var(--ph); }
+  .hb-slot.l { left: 0; } .hb-slot.r { left: var(--pw); } .hb-slot.s { left: 0; }
+  .hb-pg { position: absolute; inset: 0; background: var(--paper); color: var(--ink); overflow: hidden;
+           box-shadow: 0 12px 30px rgba(0,0,0,.45); }
+  .hb-pg::before { content: ""; position: absolute; top: 0; bottom: 0; width: 10%; pointer-events: none; z-index: 2; }
+  .side-l > .hb-pg::before { right: 0; background: linear-gradient(to left, rgba(70,45,20,.25), transparent); }
+  .side-r > .hb-pg::before { left: 0; background: linear-gradient(to right, rgba(70,45,20,.25), transparent); }
+  .side-s > .hb-pg::before { left: 0; width: 4%; background: linear-gradient(to right, rgba(70,45,20,.18), transparent); }
+  .side-l > .hb-pg { border-radius: 4px 0 0 4px; } .side-r > .hb-pg { border-radius: 0 4px 4px 0; }
+  .hb-pg.cover { border-radius: 2px 6px 6px 2px; }
+  .hb-leaf { position: absolute; top: 0; width: var(--pw); height: var(--ph); transform-style: preserve-3d; z-index: 5; will-change: transform; }
+  .hb-leaf.r, .hb-leaf.s { left: var(--pw); transform-origin: left center; }
+  .hb-leaf.s { left: 0; }
+  .hb-leaf.l { left: 0; transform-origin: right center; }
+  .hb-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .hb-face.b { transform: rotateY(180deg); }
+  .hb-shade { position: absolute; inset: 0; pointer-events: none; z-index: 3; opacity: 0;
+              background: linear-gradient(to right, rgba(25,15,5,.55), rgba(25,15,5,.2)); }
+  .hb-face.side-l .hb-shade { background: linear-gradient(to left, rgba(25,15,5,.55), rgba(25,15,5,.2)); }
+  .hb-cast { position: absolute; top: 0; width: var(--pw); height: var(--ph); pointer-events: none; z-index: 4; opacity: 0;
+             background: linear-gradient(to right, rgba(0,0,0,.45), transparent 55%); }
+  .hb-cast.r, .hb-cast.s { left: var(--pw); } .hb-cast.s { left: 0; }
+  .hb-cast.l { left: 0; background: linear-gradient(to left, rgba(0,0,0,.45), transparent 55%); }
+
+  .hb-head, .hb-num { position: absolute; left: var(--px); right: var(--px); text-align: center; color: var(--ink-2);
+                      font: .66rem/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; white-space: nowrap;
+                      overflow: hidden; text-overflow: ellipsis; }
+  .hb-head { top: calc(var(--pt) * .42); }
+  .hb-num { bottom: calc(var(--pb) * .4); font-size: .78rem; letter-spacing: .05em; }
+  .hb-clip { position: absolute; left: var(--px); top: var(--pt); width: var(--cw); height: var(--ch); overflow: hidden; }
+  .hb-flow { position: absolute; top: 0; left: 0; width: var(--cw); height: var(--ch);
+             column-width: var(--cw); column-gap: var(--gap); column-fill: auto;
+             font: var(--fs)/1.5 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; color: var(--ink);
+             hyphens: auto; -webkit-hyphens: auto; overflow-wrap: break-word; }
+  .hb-flow h2, .hb-flow h3, .hb-flow h4 { font-family: var(--serif); font-weight: 400; line-height: 1.12; break-after: avoid; }
+  .hb-flow h2 { break-before: column; font-size: 2.15em; color: var(--accent); padding-top: calc(var(--ch) * .2); margin: 0 0 .7em; }
+  .hb-flow h3 { font-size: 1.5em; margin: 1.1em 0 .35em; }
+  .hb-flow h4 { font-size: 1.18em; margin: .9em 0 .25em; color: var(--accent); }
+  .hb-flow p { margin: 0 0 .6em; text-align: justify; orphans: 2; widows: 2; }
+  .hb-flow ul, .hb-flow ol { padding-left: 1.2em; margin: .3em 0 .7em; }
+  .hb-flow li { margin-bottom: .3em; }
+  .hb-flow em { color: var(--ink-2); }
+  .hb-flow hr { display: none; }
+  .hb-flow .tablewrap { margin: .4em 0 .8em; overflow: visible; }
+  .hb-flow table { width: 100%; border-collapse: collapse; font-size: .8em; line-height: 1.35; }
+  .hb-flow th, .hb-flow td { text-align: left; vertical-align: top; padding: .3em .35em; border-bottom: 1px solid rgba(80,60,40,.25); }
+  .hb-flow th { color: var(--ink-2); font-weight: 600; }
+  .hb-flow tr { break-inside: avoid; }
+  .hb-titlepage { height: var(--ch); display: flex; flex-direction: column; justify-content: center; text-align: center; break-after: column; }
+  .hb-titlepage h2 { break-before: auto; padding-top: 0; font-size: 2.9em; margin-bottom: .3em; }
+  .hb-titlepage p { text-align: center; }
+  .hb-end { height: 1px; }
+  .hb-flash { animation: hbflash 2.2s ease-out; }
+  @keyframes hbflash { from { background: rgba(224,145,47,.45); } to { background: transparent; } }
+
+  .hb-pg.cover { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+                 padding: 12%; color: #f1dcb2; background: radial-gradient(120% 90% at 30% 20%, #7a5233, #4a2f1b 70%, #3a2414); }
+  .hb-pg.cover::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 5%; background: linear-gradient(to right, rgba(0,0,0,.35), transparent); }
+  .hb-cv-logo { width: 34%; opacity: .9; margin-bottom: 9%; }
+  .hb-cv-t { font-family: var(--serif); font-size: calc(var(--pw) * .135); line-height: 1; }
+  .hb-cv-s { font-family: var(--serif); font-size: calc(var(--pw) * .052); margin-top: .9em; opacity: .85; }
+  .hb-pg.blank { background: linear-gradient(to left, #e6dcc6, var(--paper)); }
+
+  .hb-foot { display: flex; align-items: center; gap: .8rem; width: calc(var(--pw) * 2); max-width: 100%; margin: .8rem auto 0;
+             color: var(--muted); font-size: .85rem; }
+  .hb-foot input[type=range] { flex: 1; padding: 0; border: 0; background: none; accent-color: var(--amber); }
+  .hb-foot span { white-space: nowrap; }
+  #hb-measure { position: absolute; left: -99999px; top: 0; visibility: hidden; pointer-events: none; }
+
+  /* Handy: Buch im Vollbild, eine Seite */
+  body.hb-full { overflow: hidden; }
+  body.hb-full #view-hb { position: fixed; inset: 0; z-index: 30; background: var(--bg); display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top) max(.6rem, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(.6rem, env(safe-area-inset-left)); }
+  body.hb-full .hb-close { display: inline-block; }
+  body.hb-full .hb-bar { gap: .4rem; }
+  body.hb-full .hb-bar select { flex-basis: 100%; }
+  body.hb-full .hb-wrap { flex: 1; min-height: 0; }
+  body.hb-full .hb-stage { margin-top: 0; }
+  body.hb-full .hb-foot { width: auto; margin: .5rem 0 .4rem; }
   .calc-out { font-family: var(--serif); font-size: 1.4rem; margin: .8rem 0 .6rem; }
   #view-calc { max-width: 820px; }
   .calc-box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .4rem 1rem .4rem; margin-bottom: .8rem; }
@@ -614,15 +683,23 @@
         <label for="hb-toc" class="sr">Kapitel</label>
         <select id="hb-toc"></select>
         <label for="hb-q" class="sr">Im Handbuch suchen</label>
-        <input id="hb-q" type="search" placeholder="Im Handbuch suchen …">
+        <input id="hb-q" type="search" placeholder="Im Buch suchen …" autocomplete="off">
         <label class="btn ghost small" for="hb-file" title="Buchtext als .md-Datei hochladen">Text ersetzen</label>
         <input id="hb-file" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" class="sr">
+        <button class="btn ghost small hb-close" id="hb-close" type="button" aria-label="Handbuch schließen">✕</button>
+        <div class="hb-hits" id="hb-hits"></div>
       </div>
-      <p class="hb-meta" id="hb-meta"></p>
       <div class="msg" id="hb-msg" role="status"></div>
-      <div class="hb-hits" id="hb-hits"></div>
-      <article class="hb-body" id="hb-body"></article>
-      <button class="btn ghost small hb-top hidden" id="hb-top" type="button">↑ Inhalt</button>
+      <div class="hb-wrap" id="hb-wrap">
+        <div class="hb-stage" id="hb-stage" aria-label="Buchseiten: tippen oder wischen zum Umblättern"></div>
+      </div>
+      <div class="hb-foot">
+        <span id="hb-pos"></span>
+        <label for="hb-range" class="sr">Seite wählen</label>
+        <input id="hb-range" type="range" min="0" max="0" value="0">
+        <span id="hb-meta"></span>
+      </div>
+      <div id="hb-measure" aria-hidden="true"><article class="hb-flow" id="hb-body"></article></div>
     </div>
   </section>
 </main>
@@ -798,6 +875,7 @@ async function loadAll() {
 
 /* ---------- Tabs ---------- */
 function showTab(name) {
+  if (name !== "hb") document.body.classList.remove("hb-full");
   for (const t of ["rolls", "inv", "cams", "calc", "guide", "hb"]) {
     $("#view-" + t).classList.toggle("hidden", name !== t);
     $("#tab-" + t).setAttribute("aria-selected", name === t);
@@ -808,7 +886,10 @@ $("#tab-cams").onclick = () => showTab("cams");
 $("#tab-inv").onclick = () => showTab("inv");
 $("#tab-calc").onclick = () => showTab("calc");
 $("#tab-guide").onclick = () => showTab("guide");
-$("#tab-hb").onclick = () => { showTab("hb"); loadHandbuch(); };
+$("#tab-hb").onclick = () => {
+  showTab("hb"); loadHandbuch();
+  if (window.innerWidth >= 760) $("#view-hb").scrollIntoView({ block: "start" });
+};
 // Links aus der Anleitung öffnen den Reiter „Rechner“ beim passenden Rechner
 $("#view-guide").addEventListener("click", (e) => {
   const link = e.target.closest("a[data-calc]");
@@ -819,34 +900,40 @@ $("#view-guide").addEventListener("click", (e) => {
 });
 
 /* ---------- Handbuch (nur für Admins, Text liegt in der Tabelle „handbuch“) ---------- */
-let hbLoaded = false, hbBlocks = [];
+// Das Buch wird in Seiten umgebrochen (CSS-Spalten in einer unsichtbaren Messfläche).
+// Jede sichtbare Seite zeigt denselben Text, nur um die passende Spaltenbreite verschoben.
+let hbLoaded = false, hbBlocks = [], hbHtml = "";
+const HB = { mode: "", W: 0, H: 0, pages: 0, stride: 0, pos: 0, teil: [], starts: new Set(), pageOf: {}, cache: new Map(), busy: false };
+const hbReduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 async function checkHandbuch() {
   const { data } = await db.rpc("is_admin");
   $("#tab-hb").classList.toggle("hidden", data !== true);
 }
 function resetHandbuch() {
-  hbLoaded = false; hbBlocks = [];
+  hbLoaded = false; hbBlocks = []; hbHtml = "";
+  Object.assign(HB, { mode: "", pages: 0, pos: 0 }); HB.cache.clear();
   $("#tab-hb").classList.add("hidden");
-  $("#hb-body").innerHTML = ""; $("#hb-toc").innerHTML = ""; $("#hb-hits").innerHTML = ""; $("#hb-meta").textContent = "";
+  $("#hb-body").innerHTML = ""; $("#hb-stage").replaceChildren(); $("#hb-toc").innerHTML = "";
+  $("#hb-hits").innerHTML = ""; $("#hb-meta").textContent = ""; $("#hb-pos").textContent = "";
   if (!$("#view-hb").classList.contains("hidden")) showTab("rolls");
 }
 
 async function loadHandbuch(force) {
-  if (hbLoaded && !force) return;
+  if (hbLoaded && !force) { hbLayout(); return; }
   msg($("#hb-msg"), "Lade Handbuch …");
   const { data, error } = await db.from("handbuch").select("inhalt, updated_at").eq("id", 1).maybeSingle();
   if (error) { msg($("#hb-msg"), "Fehler beim Laden: " + error.message, "err"); return; }
   msg($("#hb-msg"), "");
   hbLoaded = true;
   if (!data) {
-    $("#hb-body").innerHTML = "";
     $("#hb-toc").innerHTML = "<option>Noch kein Text</option>";
-    $("#hb-meta").textContent = "Noch kein Buchtext gespeichert. Lade die Datei Analoge_Welt.md über „Text ersetzen“ hoch.";
+    msg($("#hb-msg"), "Noch kein Buchtext gespeichert. Lade die Datei Analoge_Welt.md über „Text ersetzen“ hoch.");
     return;
   }
   renderHandbuch(data.inhalt);
-  $("#hb-meta").textContent = "Stand: " + new Date(data.updated_at).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+  $("#hb-meta").textContent = "Stand " + new Date(data.updated_at).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" });
+  hbLayout(true);
 }
 
 // Kleiner Markdown-Umsetzer für den Buchtext: Überschriften, Absätze, Listen, Tabellen, fett/kursiv
@@ -908,69 +995,284 @@ function mdToHtml(src) {
 
 function renderHandbuch(md) {
   const body = $("#hb-body");
-  body.innerHTML = mdToHtml(md);
+  body.innerHTML = mdToHtml(md) + '<div class="hb-end"></div>';
+  // Titelseite: alles vor der ersten Trennlinie
+  const hr = body.querySelector(":scope > hr");
+  if (hr) {
+    const sec = document.createElement("section"); sec.className = "hb-titlepage";
+    while (body.firstChild !== hr) sec.appendChild(body.firstChild);
+    hr.replaceWith(sec);
+  }
   // Inhaltsverzeichnis: Teile als Gruppen, Kapitel darunter
-  let toc = '<option value="">Inhalt: Kapitel wählen …</option>', group = null;
+  let toc = '<option value="">Inhalt: Kapitel wählen …</option>', open = false;
   body.querySelectorAll("h2, h3").forEach((h) => {
     const t = esc(h.textContent);
-    if (h.tagName === "H2") {
-      if (group) toc += "</optgroup>";
-      toc += `<optgroup label="${t}"><option value="${h.id}">${t}</option>`; group = true;
-    } else toc += `<option value="${h.id}">${t}</option>`;
+    if (h.tagName === "H2") { toc += (open ? "</optgroup>" : "") + `<optgroup label="${t}"><option value="${h.id}">${t}</option>`; open = true; }
+    else toc += `<option value="${h.id}">${t}</option>`;
   });
-  if (group) toc += "</optgroup>";
-  $("#hb-toc").innerHTML = toc;
+  $("#hb-toc").innerHTML = toc + (open ? "</optgroup>" : "");
   // Suchbare Abschnitte mit dem jeweils letzten Kapitel davor
   hbBlocks = []; let chapter = "";
   body.querySelectorAll("h2, h3, h4, p, li, tr").forEach((el) => {
     if (/^H[234]$/.test(el.tagName)) { if (el.tagName !== "H4") chapter = el.textContent; return; }
     if (el.tagName === "LI" && el.querySelector("li")) return;
     const text = el.tagName === "TR" ? [...el.cells].map((c) => c.textContent).join(" – ") : el.textContent;
+    el.dataset.b = hbBlocks.length;
     hbBlocks.push({ el, chapter, text });
   });
+  hbHtml = body.innerHTML.replace(/ id="hb-\d+"/g, "");
   $("#hb-q").value = ""; $("#hb-hits").innerHTML = "";
+  HB.mode = "";
 }
 
-function hbJump(el) {
-  el.scrollIntoView({ behavior: "smooth", block: el.matches("h2, h3, h4") ? "start" : "center" });
-  el.classList.remove("hb-flash"); void el.offsetWidth; el.classList.add("hb-flash");
+/* Seitenmaße bestimmen und das Buch neu umbrechen */
+function hbLayout(force) {
+  const view = $("#view-hb");
+  if (view.classList.contains("hidden") || !hbHtml) { document.body.classList.remove("hb-full"); return; }
+  const narrow = window.innerWidth < 760;
+  document.body.classList.toggle("hb-full", narrow);
+  let mode, W, H;
+  if (narrow) {
+    const wrap = $("#hb-wrap");
+    mode = "single"; W = Math.floor(wrap.clientWidth); H = Math.floor(wrap.clientHeight);
+  } else {
+    const availH = Math.max(440, window.innerHeight - 130);
+    mode = "spread"; W = Math.floor(Math.min(availH / 1.42, (view.clientWidth - 4) / 2)); H = Math.floor(W * 1.42);
+  }
+  if (W < 200 || H < 260) return;
+  // Kleine Höhenänderungen (Safari-Leisten) lösen keinen neuen Umbruch aus
+  if (!force && mode === HB.mode && Math.abs(W - HB.W) < 2 && Math.abs(H - HB.H) < (narrow ? 90 : 2)) return;
+  const ratio = HB.pages > 1 ? hbCurPage() / (HB.pages - 1) : null;
+  Object.assign(HB, { mode, W, H });
+  const px = mode === "single" ? 22 : Math.round(W * .09), pt = Math.round(H * .075), pb = Math.round(H * .08);
+  const fs = mode === "single" ? 16.5 : Math.max(12.5, Math.min(16, W / 30));
+  const cw = W - 2 * px, ch = H - pt - pb, gap = 40;
+  for (const [k, v] of Object.entries({ pw: W, ph: H, px, pt, pb, cw, ch, gap, fs })) view.style.setProperty("--" + k, v + "px");
+  HB.stride = cw + gap;
+  const body = $("#hb-body");
+  HB.pages = hbAt(body.querySelector(".hb-end")) + 1;   // Seite 0 ist der Umschlag
+  HB.pageOf = {};
+  body.querySelectorAll("h2[id], h3[id]").forEach((h) => { HB.pageOf[h.id] = hbAt(h); });
+  HB.starts = new Set(); HB.teil = [];
+  const h2s = [...body.querySelectorAll("h2")].map((h) => [hbAt(h), h.textContent]);
+  h2s.forEach(([p]) => HB.starts.add(p));
+  let cur = "";
+  for (let i = 0; i < HB.pages; i++) { for (const [p, t] of h2s) if (p === i) cur = t; HB.teil[i] = cur; }
+  HB.cache.clear();
+  let page = 0;
+  if (ratio != null) page = Math.round(ratio * (HB.pages - 1));
+  else { try { page = +localStorage.getItem("hbPage") || 0; } catch { page = 0; } }
+  hbGoto(page);
 }
-$("#hb-toc").onchange = (e) => { const el = document.getElementById(e.target.value); if (el) hbJump(el); e.target.value = ""; };
+// Auf welcher Buchseite beginnt ein Element der Messfläche?
+function hbAt(el) {
+  const x = el.getBoundingClientRect().left - $("#hb-body").getBoundingClientRect().left;
+  return Math.floor((x + 2) / HB.stride) + 1;
+}
+const hbMaxPos = () => HB.mode === "single" ? HB.pages - 1 : Math.floor(HB.pages / 2);
+const hbCurPage = () => HB.mode === "single" ? HB.pos : Math.max(0, 2 * HB.pos - 1);
+const hbPosFor = (p) => HB.mode === "single" ? p : Math.floor((p + 1) / 2);
+function hbPosLabel(pos) {
+  const last = HB.pages - 1;
+  if (pos === 0) return "Umschlag";
+  if (HB.mode === "single") return `Seite ${pos} von ${last}`;
+  const l = 2 * pos - 1, r = 2 * pos;
+  return r <= last ? `Seite ${l}–${r} von ${last}` : `Seite ${l} von ${last}`;
+}
+
+const HB_COVER = (() => {
+  let blades = "";
+  for (let k = 0; k < 6; k++) {
+    const a = k * Math.PI / 3, b = a + 1.25;
+    blades += `<line x1="${(50 + 17 * Math.cos(a)).toFixed(1)}" y1="${(50 + 17 * Math.sin(a)).toFixed(1)}" x2="${(50 + 45 * Math.cos(b)).toFixed(1)}" y2="${(50 + 45 * Math.sin(b)).toFixed(1)}"/>`;
+  }
+  return `<svg class="hb-cv-logo" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4">
+    <circle cx="50" cy="50" r="45"/>${blades}</g></svg>
+    <div class="hb-cv-t">Analoge Welt</div><div class="hb-cv-s">Das Handbuch für Film und Dunkelkammer</div>`;
+})();
+
+// Fertige Seiten werden zwischengespeichert, damit das Umblättern flüssig bleibt
+function hbPage(i) {
+  if (i < 0 || i >= HB.pages) return null;
+  if (HB.cache.has(i)) { const el = HB.cache.get(i); HB.cache.delete(i); HB.cache.set(i, el); return el; }
+  const el = document.createElement("div");
+  if (i === 0) { el.className = "hb-pg cover"; el.innerHTML = HB_COVER; }
+  else {
+    el.className = "hb-pg";
+    const head = HB.starts.has(i) || i === 1 ? "" : esc(HB.mode === "spread" && i % 2 === 1 ? "Analoge Welt" : HB.teil[i]);
+    el.innerHTML = `<div class="hb-head">${head}</div><div class="hb-clip"><div class="hb-flow" style="left:${-(i - 1) * HB.stride}px">${hbHtml}</div></div><div class="hb-num">${i}</div>`;
+  }
+  HB.cache.set(i, el);
+  if (HB.cache.size > 12) for (const [k, v] of HB.cache) if (!v.isConnected) { HB.cache.delete(k); if (HB.cache.size <= 12) break; }
+  return el;
+}
+function hbBlank() { const el = document.createElement("div"); el.className = "hb-pg blank"; return el; }
+function hbSlot(cls, el) { const s = document.createElement("div"); s.className = "hb-slot " + cls; if (el) s.append(el); return s; }
+
+function hbRender() {
+  const st = $("#hb-stage");
+  st.className = "hb-stage " + HB.mode;
+  if (HB.mode === "single") st.replaceChildren(hbSlot("s side-s", hbPage(HB.pos)));
+  else st.replaceChildren(hbSlot("l side-l", hbPage(2 * HB.pos - 1)), hbSlot("r side-r", hbPage(2 * HB.pos)));
+  $("#hb-pos").textContent = hbPosLabel(HB.pos);
+  const range = $("#hb-range"); range.max = hbMaxPos(); range.value = HB.pos;
+  try { localStorage.setItem("hbPage", hbCurPage()); } catch {}
+  // Nächste Seiten schon vorbereiten
+  setTimeout(() => {
+    const p = hbCurPage();
+    for (let i = p + 1; i <= p + (HB.mode === "single" ? 1 : 3); i++) hbPage(i);
+  }, 60);
+}
+function hbGoto(page) {
+  HB.pos = Math.max(0, Math.min(hbMaxPos(), hbPosFor(page)));
+  hbRender();
+}
+
+/* Umblättern: ein Blatt dreht sich um den Buchrücken, Vorder- und Rückseite sind echte Seiten */
+function hbFlipStart(dir) {
+  if (HB.busy || !HB.pages) return null;
+  const np = HB.pos + dir;
+  if (np < 0 || np > hbMaxPos()) return null;
+  HB.busy = true;
+  const st = $("#hb-stage"), s = HB.pos, single = HB.mode === "single";
+  const leaf = document.createElement("div"), cast = document.createElement("div");
+  const face = (cls, el) => { const f = document.createElement("div"); f.className = "hb-face " + cls; f.append(el || hbBlank()); const sh = document.createElement("div"); sh.className = "hb-shade"; f.append(sh); return f; };
+  let front, back, angle;
+  if (single) {
+    st.replaceChildren(hbSlot("s side-s", hbPage(dir > 0 ? s + 1 : s)));
+    front = face("f side-s", hbPage(dir > 0 ? s : s - 1)); back = face("b", hbBlank());
+    leaf.className = "hb-leaf s"; cast.className = "hb-cast s";
+    angle = dir > 0 ? (p) => -180 * p : (p) => -180 * (1 - p);
+  } else if (dir > 0) {
+    st.replaceChildren(hbSlot("l side-l", hbPage(2 * s - 1)), hbSlot("r side-r", hbPage(2 * s + 2)));
+    front = face("f side-r", hbPage(2 * s)); back = face("b side-l", hbPage(2 * s + 1));
+    leaf.className = "hb-leaf r"; cast.className = "hb-cast r"; angle = (p) => -180 * p;
+  } else {
+    st.replaceChildren(hbSlot("l side-l", hbPage(2 * s - 3)), hbSlot("r side-r", hbPage(2 * s)));
+    front = face("f side-l", hbPage(2 * s - 1)); back = face("b side-r", hbPage(2 * s - 2));
+    leaf.className = "hb-leaf l"; cast.className = "hb-cast l"; angle = (p) => 180 * p;
+  }
+  leaf.append(front, back); st.append(cast, leaf);
+  const turnsAway = !(single && dir < 0);
+  const fs = front.lastChild, bs = back.lastChild;
+  const set = (p) => {
+    const t = turnsAway ? p : 1 - p;   // wie weit das Blatt von „flach, Vorderseite oben“ weg ist
+    leaf.style.transform = `rotateY(${angle(p)}deg)`;
+    fs.style.opacity = Math.min(1, t * 1.1);
+    bs.style.opacity = Math.min(1, (1 - t) * 1.1);
+    cast.style.opacity = turnsAway ? (1 - p) * .8 : p * .6;
+  };
+  set(0);
+  return {
+    dir, set,
+    finish(commit, ms = 520) {
+      if (hbReduced) ms = 0;
+      const tr = `${ms}ms cubic-bezier(.3,.7,.3,1)`;
+      leaf.style.transition = "transform " + tr;
+      [fs, bs, cast].forEach((el) => { el.style.transition = "opacity " + tr; });
+      void leaf.offsetWidth;
+      set(commit ? 1 : 0);
+      setTimeout(() => { if (commit) HB.pos = np; HB.busy = false; hbRender(); }, ms + 30);
+    },
+  };
+}
+function hbTurn(dir) { const f = hbFlipStart(dir); if (f) f.finish(true); }
+
+// Wischen (Finger oder Maus): das Blatt folgt der Bewegung; Tippen blättert
+(() => {
+  const st = $("#hb-stage");
+  let d = null;
+  st.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || HB.busy || !HB.pages) return;
+    d = { x: e.clientX, y: e.clientY, lx: e.clientX, lt: performance.now(), vx: 0, p: 0, flip: null, id: e.pointerId };
+  });
+  st.addEventListener("pointermove", (e) => {
+    if (!d || e.pointerId !== d.id) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y, now = performance.now();
+    if (!d.flip) {
+      if (Math.abs(dy) > 16 && Math.abs(dy) > Math.abs(dx)) { d = null; return; }
+      if (Math.abs(dx) < 10) return;
+      d.flip = hbFlipStart(dx < 0 ? 1 : -1);
+      if (!d.flip) { d = null; return; }
+      try { st.setPointerCapture(e.pointerId); } catch {}
+    }
+    d.vx = (e.clientX - d.lx) / Math.max(1, now - d.lt); d.lx = e.clientX; d.lt = now;
+    const span = HB.mode === "single" ? HB.W * .85 : HB.W * 1.5;
+    d.p = Math.min(1, Math.max(0, (-dx * d.flip.dir) / span));
+    d.flip.set(d.p);
+  });
+  const end = (e) => {
+    if (!d || e.pointerId !== d.id) return;
+    const g = d; d = null;
+    if (g.flip) { g.flip.finish(g.p > .33 || -g.vx * g.flip.dir > .45, 340); return; }
+    if (e.type !== "pointerup") return;
+    const r = st.getBoundingClientRect(), x = (e.clientX - r.left) / r.width;
+    if (HB.mode === "single") { if (x > .55) hbTurn(1); else if (x < .45) hbTurn(-1); }
+    else hbTurn(x >= .5 ? 1 : -1);
+  };
+  st.addEventListener("pointerup", end);
+  st.addEventListener("pointercancel", end);
+})();
+
+document.addEventListener("keydown", (e) => {
+  if ($("#view-hb").classList.contains("hidden") || e.target.closest("input, select, textarea, dialog")) return;
+  if (e.key === "ArrowRight" || e.key === "PageDown") { e.preventDefault(); hbTurn(1); }
+  if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); hbTurn(-1); }
+  if (e.key === "Escape" && document.body.classList.contains("hb-full")) showTab("rolls");
+});
+let hbResizeT;
+window.addEventListener("resize", () => { clearTimeout(hbResizeT); hbResizeT = setTimeout(() => hbLayout(), 200); });
+
+$("#hb-range").oninput = (e) => { $("#hb-pos").textContent = hbPosLabel(+e.target.value); };
+$("#hb-range").onchange = (e) => { HB.pos = +e.target.value; hbRender(); };
+$("#hb-close").onclick = () => showTab("rolls");
+
+function hbFlash(blockIndex, page) {
+  const el = HB.cache.get(page)?.querySelector(`[data-b="${blockIndex}"]`);
+  if (el) { el.classList.remove("hb-flash"); void el.offsetWidth; el.classList.add("hb-flash"); }
+}
+$("#hb-toc").onchange = (e) => {
+  const p = HB.pageOf[e.target.value]; e.target.value = "";
+  if (p != null) hbGoto(p);
+};
 
 let hbTimer;
 $("#hb-q").addEventListener("input", () => { clearTimeout(hbTimer); hbTimer = setTimeout(hbSearch, 150); });
+$("#hb-q").addEventListener("focus", hbSearch);
+$("#hb-q").addEventListener("keydown", (e) => { if (e.key === "Escape") { e.target.value = ""; hbSearch(); e.target.blur(); } });
+document.addEventListener("pointerdown", (e) => { if (!e.target.closest(".hb-bar")) $("#hb-hits").innerHTML = ""; });
 function hbSearch() {
   const q = $("#hb-q").value.trim(), box = $("#hb-hits");
-  if (q.length < 2) { box.innerHTML = ""; return; }
+  if (q.length < 2 || !hbBlocks.length) { box.innerHTML = ""; return; }
   const low = q.toLowerCase(), rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
-  const hits = hbBlocks.filter((b) => b.text.toLowerCase().includes(low));
+  const hits = hbBlocks.map((b, i) => ({ ...b, i })).filter((b) => b.text.toLowerCase().includes(low));
   if (!hits.length) { box.innerHTML = "<p>Nichts gefunden.</p>"; return; }
-  box.innerHTML = `<p>${hits.length} Treffer${hits.length > 30 ? ", die ersten 30" : ""}:</p>` + hits.slice(0, 30).map((b, i) => {
-    const t = b.text.replace(/\s+/g, " "), at = t.toLowerCase().indexOf(low), from = Math.max(0, at - 60);
-    const snip = (from ? "… " : "") + t.slice(from, at + q.length + 90) + (at + q.length + 90 < t.length ? " …" : "");
-    return `<button type="button" class="hb-hit" data-i="${i}"><b>${esc(b.chapter)}</b>${esc(snip).replace(rx, (x) => "<mark>" + x + "</mark>")}</button>`;
+  box.innerHTML = `<p>${hits.length} Treffer${hits.length > 40 ? ", die ersten 40" : ""}:</p>` + hits.slice(0, 40).map((b) => {
+    const t = b.text.replace(/\s+/g, " "), at = t.toLowerCase().indexOf(low), from = Math.max(0, at - 50);
+    const snip = (from ? "… " : "") + t.slice(from, at + q.length + 80) + (at + q.length + 80 < t.length ? " …" : "");
+    const page = HB.stride ? ` · S. ${hbAt(b.el)}` : "";
+    return `<button type="button" class="hb-hit" data-i="${b.i}"><b>${esc(b.chapter)}${page}</b>${esc(snip).replace(rx, (x) => "<mark>" + x + "</mark>")}</button>`;
   }).join("");
-  box.querySelectorAll(".hb-hit").forEach((btn) => btn.onclick = () => hbJump(hits[+btn.dataset.i].el));
+  box.querySelectorAll(".hb-hit").forEach((btn) => btn.onclick = () => {
+    const i = +btn.dataset.i, page = hbAt(hbBlocks[i].el);
+    box.innerHTML = ""; $("#hb-q").blur();
+    hbGoto(page); hbFlash(i, page);
+  });
 }
-
-$("#hb-top").onclick = () => $("#view-hb").scrollIntoView({ behavior: "smooth" });
-window.addEventListener("scroll", () => {
-  const v = $("#view-hb");
-  $("#hb-top").classList.toggle("hidden", v.classList.contains("hidden") || window.scrollY < v.offsetTop + 800);
-}, { passive: true });
 
 $("#hb-file").onchange = async (e) => {
   const file = e.target.files[0]; e.target.value = "";
   if (!file) return;
   const text = await file.text();
   if (!/^#\s/m.test(text)) { msg($("#hb-msg"), "Das sieht nicht nach dem Buchtext aus (keine Überschriften mit #).", "err"); return; }
-  if ($("#hb-body").innerHTML && !confirm(`Den gespeicherten Buchtext durch „${file.name}“ ersetzen?`)) return;
+  if (hbHtml && !confirm(`Den gespeicherten Buchtext durch „${file.name}“ ersetzen?`)) return;
   msg($("#hb-msg"), "Speichere …");
   const { data, error } = await db.from("handbuch")
     .upsert({ id: 1, inhalt: text, updated_at: new Date().toISOString() }).select("id");
   if (error || !data?.length) { msg($("#hb-msg"), "Speichern fehlgeschlagen: " + (error?.message || "keine Berechtigung"), "err"); return; }
   await loadHandbuch(true);
   msg($("#hb-msg"), "Buchtext gespeichert.", "ok");
+  setTimeout(() => msg($("#hb-msg"), ""), 2500);
 };
 
 /* ---------- Verdünnungsrechner ---------- */
