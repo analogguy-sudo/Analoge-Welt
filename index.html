@@ -196,6 +196,38 @@
   .guide table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: .92rem; }
   .guide th, .guide td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
   .guide th { color: var(--muted); font-weight: 500; }
+  /* Handbuch (nur Admin) */
+  #view-hb { max-width: 820px; }
+  .hb-bar { position: sticky; top: 0; z-index: 4; background: var(--bg); display: flex; gap: .5rem; flex-wrap: wrap;
+            align-items: center; padding: .6rem 0; border-bottom: 1px solid var(--line); }
+  .hb-bar select { flex: 2 1 240px; width: auto; min-width: 0; }
+  .hb-bar input[type=search] { flex: 1 1 180px; width: auto; min-width: 0; }
+  .hb-bar .btn { white-space: nowrap; margin: 0; }
+  .hb-meta { color: var(--muted); font-size: .85rem; margin: .5rem 0 0; }
+  .hb-hits { margin: .6rem 0; }
+  .hb-hits:empty { display: none; }
+  .hb-hits p { color: var(--muted); font-size: .9rem; margin: .2rem 0 .5rem; }
+  .hb-hit { display: block; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--line);
+            border-radius: 6px; padding: .45rem .7rem; margin-bottom: .4rem; cursor: pointer; color: var(--text); }
+  .hb-hit:hover { border-color: var(--muted); }
+  .hb-hit b { display: block; font-weight: 500; color: var(--amber); font-size: .85rem; }
+  .hb-hit mark, .hb-body mark { background: rgba(224,145,47,.35); color: inherit; border-radius: 2px; }
+  .hb-body { line-height: 1.6; }
+  .hb-body h2, .hb-body h3, .hb-body h4 { scroll-margin-top: 4.5rem; }
+  .hb-body h2 { font-size: 2.2rem; margin: 2.6rem 0 .6rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--amber); }
+  .hb-body h2:first-child { border-top: 0; margin-top: 1rem; }
+  .hb-body h3 { font-size: 1.6rem; margin: 2rem 0 .4rem; }
+  .hb-body h4 { font-size: 1.25rem; margin: 1.4rem 0 .3rem; color: var(--muted); }
+  .hb-body p, .hb-body li { max-width: 70ch; }
+  .hb-body ul, .hb-body ol { padding-left: 1.25rem; margin: .4rem 0 .9rem; }
+  .hb-body li { margin-bottom: .45rem; }
+  .hb-body hr { border: 0; border-top: 1px solid var(--line); margin: 1.5rem 0; }
+  .hb-body table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: .92rem; }
+  .hb-body th, .hb-body td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .hb-body th { color: var(--muted); font-weight: 500; }
+  .hb-flash { animation: hbflash 2s ease-out; }
+  @keyframes hbflash { from { background: rgba(224,145,47,.3); } to { background: transparent; } }
+  .hb-top { position: fixed; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom)); z-index: 6; }
   .calc-out { font-family: var(--serif); font-size: 1.4rem; margin: .8rem 0 .6rem; }
   #view-calc { max-width: 820px; }
   .calc-box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .4rem 1rem .4rem; margin-bottom: .8rem; }
@@ -281,6 +313,7 @@
       <button role="tab" id="tab-cams" aria-selected="false">Kameras</button>
       <button role="tab" id="tab-calc" aria-selected="false">Rechner</button>
       <button role="tab" id="tab-guide" aria-selected="false">Anleitung</button>
+      <button role="tab" id="tab-hb" aria-selected="false" class="hidden">Handbuch</button>
       <a class="tablink" href="datenbank.html">Datenbank ↗</a>
     </nav>
 
@@ -575,6 +608,22 @@
         </ul>
       </details>
     </div>
+
+    <div id="view-hb" class="hidden">
+      <div class="hb-bar">
+        <label for="hb-toc" class="sr">Kapitel</label>
+        <select id="hb-toc"></select>
+        <label for="hb-q" class="sr">Im Handbuch suchen</label>
+        <input id="hb-q" type="search" placeholder="Im Handbuch suchen …">
+        <label class="btn ghost small" for="hb-file" title="Buchtext als .md-Datei hochladen">Text ersetzen</label>
+        <input id="hb-file" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" class="sr">
+      </div>
+      <p class="hb-meta" id="hb-meta"></p>
+      <div class="msg" id="hb-msg" role="status"></div>
+      <div class="hb-hits" id="hb-hits"></div>
+      <article class="hb-body" id="hb-body"></article>
+      <button class="btn ghost small hb-top hidden" id="hb-top" type="button">↑ Inhalt</button>
+    </div>
   </section>
 </main>
 
@@ -728,8 +777,8 @@ db.auth.onAuthStateChange((_event, session) => {
   $("#auth").classList.toggle("hidden", !!user);
   $("#app").classList.toggle("hidden", !user);
   $("#who").classList.toggle("hidden", !user);
-  if (user) { $("#who-mail").textContent = user.email; loadAll(); }
-  else { cameras = []; rolls = []; }
+  if (user) { $("#who-mail").textContent = user.email; loadAll(); checkHandbuch(); }
+  else { cameras = []; rolls = []; resetHandbuch(); }
 });
 
 /* ---------- Daten laden ---------- */
@@ -749,7 +798,7 @@ async function loadAll() {
 
 /* ---------- Tabs ---------- */
 function showTab(name) {
-  for (const t of ["rolls", "inv", "cams", "calc", "guide"]) {
+  for (const t of ["rolls", "inv", "cams", "calc", "guide", "hb"]) {
     $("#view-" + t).classList.toggle("hidden", name !== t);
     $("#tab-" + t).setAttribute("aria-selected", name === t);
   }
@@ -759,6 +808,7 @@ $("#tab-cams").onclick = () => showTab("cams");
 $("#tab-inv").onclick = () => showTab("inv");
 $("#tab-calc").onclick = () => showTab("calc");
 $("#tab-guide").onclick = () => showTab("guide");
+$("#tab-hb").onclick = () => { showTab("hb"); loadHandbuch(); };
 // Links aus der Anleitung öffnen den Reiter „Rechner“ beim passenden Rechner
 $("#view-guide").addEventListener("click", (e) => {
   const link = e.target.closest("a[data-calc]");
@@ -767,6 +817,161 @@ $("#view-guide").addEventListener("click", (e) => {
   showTab("calc");
   document.getElementById(link.dataset.calc).scrollIntoView({ block: "center" });
 });
+
+/* ---------- Handbuch (nur für Admins, Text liegt in der Tabelle „handbuch“) ---------- */
+let hbLoaded = false, hbBlocks = [];
+
+async function checkHandbuch() {
+  const { data } = await db.rpc("is_admin");
+  $("#tab-hb").classList.toggle("hidden", data !== true);
+}
+function resetHandbuch() {
+  hbLoaded = false; hbBlocks = [];
+  $("#tab-hb").classList.add("hidden");
+  $("#hb-body").innerHTML = ""; $("#hb-toc").innerHTML = ""; $("#hb-hits").innerHTML = ""; $("#hb-meta").textContent = "";
+  if (!$("#view-hb").classList.contains("hidden")) showTab("rolls");
+}
+
+async function loadHandbuch(force) {
+  if (hbLoaded && !force) return;
+  msg($("#hb-msg"), "Lade Handbuch …");
+  const { data, error } = await db.from("handbuch").select("inhalt, updated_at").eq("id", 1).maybeSingle();
+  if (error) { msg($("#hb-msg"), "Fehler beim Laden: " + error.message, "err"); return; }
+  msg($("#hb-msg"), "");
+  hbLoaded = true;
+  if (!data) {
+    $("#hb-body").innerHTML = "";
+    $("#hb-toc").innerHTML = "<option>Noch kein Text</option>";
+    $("#hb-meta").textContent = "Noch kein Buchtext gespeichert. Lade die Datei Analoge_Welt.md über „Text ersetzen“ hoch.";
+    return;
+  }
+  renderHandbuch(data.inhalt);
+  $("#hb-meta").textContent = "Stand: " + new Date(data.updated_at).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+}
+
+// Kleiner Markdown-Umsetzer für den Buchtext: Überschriften, Absätze, Listen, Tabellen, fett/kursiv
+function mdInline(t) {
+  return esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*([^*]+?)\*/g, "<em>$1</em>");
+}
+function mdToHtml(src) {
+  const lines = src.replace(/\r\n?/g, "\n").split("\n");
+  const out = [], lists = [];
+  let para = [], table = [], n = 0;
+  const flushPara = () => { if (para.length) out.push("<p>" + mdInline(para.join(" ")) + "</p>"); para = []; };
+  const closeLists = (ind) => { while (lists.length && lists.at(-1).ind > ind) out.push("</li></" + lists.pop().tag + ">"); };
+  const flushTable = () => {
+    if (!table.length) return;
+    const rows = table.filter((r) => !/^\|?\s*:?-{2,}/.test(r)).map((r) => r.replace(/^\||\|$/g, "").split("|").map((c) => c.trim()));
+    const [head, ...body] = rows;
+    out.push('<div class="tablewrap"><table><thead><tr>' + head.map((c) => "<th>" + mdInline(c) + "</th>").join("") +
+      "</tr></thead><tbody>" + body.map((r) => "<tr>" + r.map((c) => "<td>" + mdInline(c) + "</td>").join("") + "</tr>").join("") +
+      "</tbody></table></div>");
+    table = [];
+  };
+  const endBlocks = () => { flushPara(); flushTable(); closeLists(-1); };
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) {
+      flushPara(); flushTable();
+      const next = lines.slice(i + 1).find((l) => l.trim());
+      if (!next || !(/^\s*([-*]|\d+\.)\s/.test(next) || (lists.length && /^\s{2,}\S/.test(next)))) closeLists(-1);
+      continue;
+    }
+    let m;
+    if ((m = line.match(/^(#{1,3})\s+(.*)$/))) {
+      endBlocks();
+      const lvl = m[1].length + 1, id = "hb-" + (++n);
+      out.push(`<h${lvl} id="${id}">${mdInline(m[2])}</h${lvl}>`);
+    } else if (/^\s*(-{3,}|\*{3,})\s*$/.test(line)) {
+      endBlocks(); out.push("<hr>");
+    } else if (/^\s*\|/.test(line)) {
+      flushPara(); closeLists(-1); table.push(line.trim());
+    } else if ((m = line.match(/^(\s*)([-*]|(\d+)\.)\s+(.*)$/))) {
+      flushPara(); flushTable();
+      const ind = m[1].length, tag = m[3] ? "ol" : "ul";
+      closeLists(ind);
+      const top = lists.at(-1);
+      if (top && top.ind === ind && top.tag !== tag) { out.push("</li></" + lists.pop().tag + ">"); }
+      if (lists.at(-1) && lists.at(-1).ind === ind) out.push("</li>");
+      else { out.push("<" + tag + (tag === "ol" && m[3] !== "1" ? ` start="${m[3]}"` : "") + ">"); lists.push({ ind, tag }); }
+      out.push("<li>" + mdInline(m[4]));
+    } else if (lists.length && /^\s{2,}\S/.test(line)) {
+      out.push(" " + mdInline(line.trim()));
+    } else {
+      flushTable(); if (lists.length && !para.length) closeLists(-1);
+      para.push(line.trim());
+    }
+  }
+  endBlocks();
+  return out.join("\n");
+}
+
+function renderHandbuch(md) {
+  const body = $("#hb-body");
+  body.innerHTML = mdToHtml(md);
+  // Inhaltsverzeichnis: Teile als Gruppen, Kapitel darunter
+  let toc = '<option value="">Inhalt: Kapitel wählen …</option>', group = null;
+  body.querySelectorAll("h2, h3").forEach((h) => {
+    const t = esc(h.textContent);
+    if (h.tagName === "H2") {
+      if (group) toc += "</optgroup>";
+      toc += `<optgroup label="${t}"><option value="${h.id}">${t}</option>`; group = true;
+    } else toc += `<option value="${h.id}">${t}</option>`;
+  });
+  if (group) toc += "</optgroup>";
+  $("#hb-toc").innerHTML = toc;
+  // Suchbare Abschnitte mit dem jeweils letzten Kapitel davor
+  hbBlocks = []; let chapter = "";
+  body.querySelectorAll("h2, h3, h4, p, li, tr").forEach((el) => {
+    if (/^H[234]$/.test(el.tagName)) { if (el.tagName !== "H4") chapter = el.textContent; return; }
+    if (el.tagName === "LI" && el.querySelector("li")) return;
+    const text = el.tagName === "TR" ? [...el.cells].map((c) => c.textContent).join(" – ") : el.textContent;
+    hbBlocks.push({ el, chapter, text });
+  });
+  $("#hb-q").value = ""; $("#hb-hits").innerHTML = "";
+}
+
+function hbJump(el) {
+  el.scrollIntoView({ behavior: "smooth", block: el.matches("h2, h3, h4") ? "start" : "center" });
+  el.classList.remove("hb-flash"); void el.offsetWidth; el.classList.add("hb-flash");
+}
+$("#hb-toc").onchange = (e) => { const el = document.getElementById(e.target.value); if (el) hbJump(el); e.target.value = ""; };
+
+let hbTimer;
+$("#hb-q").addEventListener("input", () => { clearTimeout(hbTimer); hbTimer = setTimeout(hbSearch, 150); });
+function hbSearch() {
+  const q = $("#hb-q").value.trim(), box = $("#hb-hits");
+  if (q.length < 2) { box.innerHTML = ""; return; }
+  const low = q.toLowerCase(), rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+  const hits = hbBlocks.filter((b) => b.text.toLowerCase().includes(low));
+  if (!hits.length) { box.innerHTML = "<p>Nichts gefunden.</p>"; return; }
+  box.innerHTML = `<p>${hits.length} Treffer${hits.length > 30 ? ", die ersten 30" : ""}:</p>` + hits.slice(0, 30).map((b, i) => {
+    const t = b.text.replace(/\s+/g, " "), at = t.toLowerCase().indexOf(low), from = Math.max(0, at - 60);
+    const snip = (from ? "… " : "") + t.slice(from, at + q.length + 90) + (at + q.length + 90 < t.length ? " …" : "");
+    return `<button type="button" class="hb-hit" data-i="${i}"><b>${esc(b.chapter)}</b>${esc(snip).replace(rx, (x) => "<mark>" + x + "</mark>")}</button>`;
+  }).join("");
+  box.querySelectorAll(".hb-hit").forEach((btn) => btn.onclick = () => hbJump(hits[+btn.dataset.i].el));
+}
+
+$("#hb-top").onclick = () => $("#view-hb").scrollIntoView({ behavior: "smooth" });
+window.addEventListener("scroll", () => {
+  const v = $("#view-hb");
+  $("#hb-top").classList.toggle("hidden", v.classList.contains("hidden") || window.scrollY < v.offsetTop + 800);
+}, { passive: true });
+
+$("#hb-file").onchange = async (e) => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  const text = await file.text();
+  if (!/^#\s/m.test(text)) { msg($("#hb-msg"), "Das sieht nicht nach dem Buchtext aus (keine Überschriften mit #).", "err"); return; }
+  if ($("#hb-body").innerHTML && !confirm(`Den gespeicherten Buchtext durch „${file.name}“ ersetzen?`)) return;
+  msg($("#hb-msg"), "Speichere …");
+  const { data, error } = await db.from("handbuch")
+    .upsert({ id: 1, inhalt: text, updated_at: new Date().toISOString() }).select("id");
+  if (error || !data?.length) { msg($("#hb-msg"), "Speichern fehlgeschlagen: " + (error?.message || "keine Berechtigung"), "err"); return; }
+  await loadHandbuch(true);
+  msg($("#hb-msg"), "Buchtext gespeichert.", "ok");
+};
 
 /* ---------- Verdünnungsrechner ---------- */
 function calcDilution() {
