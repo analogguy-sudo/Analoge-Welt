@@ -298,6 +298,10 @@
   .hb-flow tr { break-inside: avoid; }
   .hb-titlepage { height: var(--ch); display: flex; flex-direction: column; justify-content: center; text-align: center; break-after: column; }
   .hb-titlepage h2 { break-before: auto; padding-top: 0; font-size: 2.9em; margin-bottom: .3em; }
+  .hb-part { height: var(--ch); display: flex; flex-direction: column; justify-content: center; text-align: center;
+             break-before: column; break-after: column; -webkit-column-break-before: always; -webkit-column-break-after: always; overflow: hidden; }
+  .hb-part h2 { break-before: auto; padding-top: 0; margin-bottom: .8em; }
+  .hb-part p { text-align: center; hyphens: manual; -webkit-hyphens: manual; }
   .hb-titlepage p { text-align: center; }
   .hb-end { height: 1px; }
   .hb-flash { animation: hbflash 2.2s ease-out; }
@@ -1033,6 +1037,15 @@ function renderHandbuch(md) {
     while (body.firstChild !== hr) sec.appendChild(body.firstChild);
     hr.replaceWith(sec);
   }
+  // Teil-Seiten: Überschrift des Teils mit Einleitung auf eigener Seite, das erste Kapitel beginnt auf der nächsten
+  body.querySelectorAll(":scope > h2").forEach((h) => {
+    const part = document.createElement("section"); part.className = "hb-part";
+    h.before(part);
+    let el = h;
+    while (el && !(el !== h && /^H[23]$/.test(el.tagName)) && !el.classList.contains("hb-end")) {
+      const next = el.nextElementSibling; part.appendChild(el); el = next;
+    }
+  });
   // Inhaltsverzeichnis: Teile als Gruppen, Kapitel darunter
   let toc = '<option value="">Inhalt: Kapitel wählen …</option>', open = false;
   body.querySelectorAll("h2, h3").forEach((h) => {
