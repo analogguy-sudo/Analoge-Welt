@@ -119,6 +119,35 @@
     background-size: 20px 12px; background-repeat: repeat-x; opacity: .9;
   }
   .card:hover { border-color: var(--amber); }
+  /* Filmkarten als echter Filmstreifen: Perforation, Randbeschriftung, Filmträger je nach Filmart */
+  .list .card {
+    --base: #1b1714; --edge: rgba(226, 150, 60, .78);
+    border: 0; border-radius: 3px; padding: 2.55rem 1rem 2.55rem;
+    background:
+      linear-gradient(105deg, rgba(255,255,255,.07), rgba(255,255,255,0) 30%, rgba(255,255,255,.035) 58%, rgba(255,255,255,0) 78%),
+      linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,0) 14%, rgba(0,0,0,0) 86%, rgba(0,0,0,.25)),
+      var(--base);
+    box-shadow: 0 8px 18px -8px rgba(0,0,0,.8), inset 0 0 0 1px rgba(255,255,255,.05);
+  }
+  .list .card.color { --base: #3b2010; --edge: rgba(255, 196, 120, .8); }
+  .list .card::before, .list .card::after {
+    content: ""; position: absolute; left: 0; right: 0; height: 13px; opacity: 1; border-radius: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='19' height='13'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23f6ead2'/%3E%3Cstop offset='1' stop-color='%23d9c6a3'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='4.5' y='.5' width='10' height='12' rx='2.2' fill='url(%23g)' stroke='rgba(0,0,0,.35)'/%3E%3C/svg%3E") repeat-x 2px 0 / 19px 13px;
+    filter: drop-shadow(0 0 3px rgba(246, 226, 190, .25));
+  }
+  .list .card::before { top: 7px; }
+  .list .card::after { bottom: 7px; }
+  .list .card.mf::before, .list .card.mf::after { display: none; }
+  .list .card.mf { padding-top: 2rem; padding-bottom: 2rem; }
+  .card .frame { display: block; border-radius: 5px; padding: .75rem .85rem .8rem;
+                 background: rgba(255, 238, 215, .055); box-shadow: inset 0 0 0 1px rgba(255, 238, 215, .07), inset 0 0 18px rgba(0,0,0,.35); }
+  .list .card.color .frame { background: rgba(255, 190, 120, .07); }
+  .card .edge { position: absolute; left: .9rem; right: .9rem; display: flex; justify-content: space-between; gap: 1rem;
+                font: 700 .6rem/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: .16em; text-transform: uppercase;
+                color: var(--edge); white-space: nowrap; overflow: hidden; pointer-events: none; }
+  .card .edge.top { top: 1.42rem; } .card .edge.bot { bottom: 1.42rem; }
+  .card.mf .edge.top { top: .7rem; } .card.mf .edge.bot { bottom: .7rem; }
+  .card .edge span:nth-child(n+3) { flex: none; }
   .card h3 { font-size: 1.5rem; line-height: 1.15; }
   .card .sub { color: var(--muted); font-size: .9rem; margin-top: .15rem; }
   .card .dev { margin-top: .6rem; font-size: .9rem; }
@@ -231,7 +260,11 @@
   /* Umblättern wie in einem Buch: die Seite rollt sich an der Ecke ein */
   .hb-curl { position: absolute; top: 0; width: var(--pw); height: var(--ph); z-index: 5; pointer-events: none; }
   .hb-curl.r { left: var(--pw); } .hb-curl.s { left: 0; }
-  .hb-curl > div { position: absolute; top: 0; left: 0; width: var(--pw); height: var(--ph); }
+  .hb-curl > div { position: absolute; top: 0; left: 0; width: var(--pw); height: var(--ph); isolation: isolate; z-index: 0; }
+  .hb-curl > .hb-castl { z-index: 1; } .hb-curl > .hb-frontl { z-index: 2; }
+  .hb-curl > .hb-flapwrap { z-index: 3; } .hb-curl > .hb-shadel { z-index: 4; }
+  .hb-slot, .hb-flap { isolation: isolate; }
+  .hb-flap .hb-pg { background: var(--paper); }
   .hb-curl .hb-cw > div { position: absolute; transform-origin: 0 50%; }
   .hb-flapwrap { filter: drop-shadow(0 0 7px rgba(0,0,0,.28)); }
   .hb-flap { position: absolute; left: 0; top: 0; width: var(--pw); height: var(--ph); transform-origin: 0 0; }
@@ -1144,8 +1177,8 @@ function hbCurlSetup(from, corner) {
   const st = $("#hb-stage"), single = HB.mode === "single", W = HB.W, H = HB.H;
   const mk = (cls) => { const d = document.createElement("div"); if (cls) d.className = cls; return d; };
   const curl = mk("hb-curl " + (single ? "s" : "r"));
-  const under = mk("hb-pg-under side-" + (single ? "s" : "r")), front = mk("side-" + (single ? "s" : "r"));
-  const cast = mk("hb-cw"), castG = mk(), flapWrap = mk("hb-flapwrap"), flap = mk("hb-flap"), shade = mk("hb-cw"), shadeG = mk();
+  const under = mk("hb-pg-under side-" + (single ? "s" : "r")), front = mk("hb-frontl side-" + (single ? "s" : "r"));
+  const cast = mk("hb-cw hb-castl"), castG = mk(), flapWrap = mk("hb-flapwrap"), flap = mk("hb-flap"), shade = mk("hb-cw hb-shadel"), shadeG = mk();
   let frontPg, backPg;
   if (single) {
     frontPg = hbPage(from); under.append(hbPage(from + 1) || hbBlank());
@@ -1372,6 +1405,11 @@ calcPush();
 const camName = (id) => cameras.find((c) => c.id === id)?.name;
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("de-DE") : "");
 
+// Farbnegativ hat einen orangen Filmträger: an Prozess oder bekannten Farbfilmen erkennen
+function filmIsColor(r) {
+  return /c-?41|ecn|e-?6|portra|ektar|gold|colorplus|ultramax|pro ?image|superia|fujicolor|c200|cinestill|vision ?3|lomo.*colou?r|kodacolor|harman phoenix|velvia|provia|ektachrome|vista|reala|colou?r/i
+    .test([r.film, r.developer].join(" "));
+}
 function renderRolls() {
   const q = $("#q").value.trim().toLowerCase();
   const st = $("#fstatus").value;
@@ -1389,12 +1427,18 @@ function renderRolls() {
     const dev = [r.developer, r.dilution, r.time_min && r.time_min + " min", r.temp_c != null && r.temp_c + " °C"].filter(Boolean).join(", ");
     const isoText = r.iso ? "ISO " + r.iso + (r.ei && r.ei !== r.iso ? " → EI " + r.ei : (!r.ei && r.push_pull ? " (" + r.push_pull + ")" : "")) : "";
     const meta = [isoText, r.format, camName(r.camera_id), fmtDate(r.shot_on)].filter(Boolean).join(", ");
-    return `<button class="card" data-id="${r.id}">
-      <h3>${esc(r.film)}</h3>
-      <div class="sub">${esc(meta)}</div>
-      ${dev ? `<div class="dev">${esc(dev)}</div>` : ""}
-      ${frameCounts[r.id] ? `<div class="sub">${frameCounts[r.id]} Bild(er) notiert</div>` : ""}
-      <span class="badge st-${r.status}">${esc(r.status)}</span>
+    const kind = (filmIsColor(r) ? " color" : "") + (/^(120|220)\b|mittelformat|6\s*[x×]\s*\d/i.test(r.format || "") ? " mf" : "");
+    const n = frameCounts[r.id] || 1, name = esc((r.film || "Film") + (r.iso && !String(r.film).includes(r.iso) ? " " + r.iso : ""));
+    return `<button class="card${kind}" data-id="${r.id}">
+      <span class="edge top" aria-hidden="true"><span>${name}</span><span>▸ ${n}</span><span>${name}</span></span>
+      <span class="frame">
+        <h3>${esc(r.film)}</h3>
+        <div class="sub">${esc(meta)}</div>
+        ${dev ? `<div class="dev">${esc(dev)}</div>` : ""}
+        ${frameCounts[r.id] ? `<div class="sub">${frameCounts[r.id]} Bild(er) notiert</div>` : ""}
+        <span class="badge st-${r.status}">${esc(r.status)}</span>
+      </span>
+      <span class="edge bot" aria-hidden="true"><span>${n}</span><span>▸ ${n}A</span><span>${n + 1}</span><span>▸ ${n + 1}A</span></span>
     </button>`;
   }).join("");
 }
