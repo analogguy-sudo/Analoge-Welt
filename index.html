@@ -331,6 +331,38 @@
   body.hb-full .hb-wrap { flex: 1; min-height: 0; }
   body.hb-full .hb-stage { margin-top: 0; }
   body.hb-full .hb-foot { width: auto; margin: .5rem 0 .4rem; }
+  /* N-Rechner */
+  .nr-sub { font-size: .85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin: 1rem 0 .5rem; }
+  .nr-quick { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); }
+  .nr-quick .btn { display: block; text-align: left; padding: .7rem .85rem; min-height: 3.6rem; }
+  .nr-quick .btn b { display: block; font-weight: 600; }
+  .nr-quick .btn span { display: block; color: var(--muted); font-size: .85rem; font-weight: 400; margin-top: .1rem; }
+  .nr-quick .btn[aria-pressed="true"], .nr-seg .btn[aria-pressed="true"] { border-color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber); }
+  .nr-measure { margin: 1rem 0 0; border: 1px solid var(--line); border-radius: 6px; padding: .2rem .9rem .9rem; background: rgba(255,236,210,.02); }
+  .nr-measure summary { cursor: pointer; font-family: var(--serif); font-size: 1.25rem; padding: .5rem 0 .3rem; }
+  .nr-seg { display: flex; gap: .4rem; margin: .6rem 0 .2rem; }
+  .nr-seg .btn { flex: 1; }
+  .nr-measure fieldset { margin-top: .8rem; }
+  .nr-measure .grid.nr-set { grid-template-columns: 1fr 1fr; gap: .6rem; }
+  .nr-measure legend { font-size: 1.1rem; }
+  .nr-measure select, .nr-measure input, #nr-base { font-size: 1.05rem; min-height: 2.75rem; }
+  .nr-check { display: flex; align-items: center; gap: .55rem; margin: .9rem 0 .2rem; font-size: .95rem; color: var(--text); cursor: pointer; }
+  .nr-check input { width: 1.2rem; height: 1.2rem; min-height: 0; margin: 0; accent-color: var(--amber); }
+  .nr-facts { display: grid; grid-template-columns: auto 1fr; gap: .35rem 1rem; margin: .9rem 0 0; font-size: .95rem; }
+  .nr-facts dt { color: var(--muted); } .nr-facts dd { margin: 0; }
+  .nr-base { margin-top: 1rem; }
+  .nr-result { margin: 1rem 0 .4rem; padding: .9rem 1rem; border-radius: 6px; background: rgba(224,145,47,.08); border: 1px solid rgba(224,145,47,.35); }
+  .nr-result:empty { display: none; }
+  .nr-big { font-family: var(--serif); font-size: clamp(2.3rem, 9vw, 3rem); line-height: 1.05; color: var(--amber); }
+  .nr-big .dot { color: var(--muted); padding: 0 .15em; }
+  .nr-result p { margin: .45rem 0 0; }
+  .nr-result .err { color: #f08a78; }
+  .nr-times { border-collapse: collapse; width: 100%; font-size: .95rem; margin: .4rem 0 .2rem; }
+  .nr-times th, .nr-times td { text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--line); }
+  .nr-times th { color: var(--muted); font-weight: 500; }
+  .nr-times tr.on td { color: var(--amber); font-weight: 600; }
+  .nr-notes { margin: .6rem 0 .4rem; padding-left: 1.1rem; }
+  .nr-notes li { margin-bottom: .25rem; }
   .calc-out { font-family: var(--serif); font-size: 1.4rem; margin: .8rem 0 .6rem; }
   #view-calc { max-width: 820px; }
   .calc-box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .4rem 1rem .4rem; margin-bottom: .8rem; }
@@ -472,6 +504,58 @@
 
     <div id="view-calc" class="hidden">
       <p class="hint">Die Ergebnisse sind Richtwerte. Im Zweifel gilt das Datenblatt von Film und Entwickler.</p>
+      <section class="calc-box" id="box-n">
+        <h3>N-Rechner: N, N+1, N−1</h3>
+        <p class="hint" style="margin-top:-.4rem">Steuert den Kontrast über die Entwicklungszeit. Wähle das Licht nach Augenmaß oder miss genau.</p>
+
+        <div class="nr-sub">Nach Augenmaß</div>
+        <div class="nr-quick" role="group" aria-label="Licht nach Augenmaß">
+          <button type="button" class="btn ghost" data-dev="1" aria-pressed="false"><b>Trübes Licht</b><span>Nebel, Regen, kaum Schatten</span></button>
+          <button type="button" class="btn ghost" data-dev="0" aria-pressed="false"><b>Normales Licht</b><span>Sonne mit Wolken, weiche Schatten</span></button>
+          <button type="button" class="btn ghost" data-dev="-1" aria-pressed="false"><b>Hartes Licht</b><span>Mittagssonne, tiefe Schatten, Gegenlicht</span></button>
+        </div>
+
+        <details class="nr-measure" id="nr-measure">
+          <summary>Genau messen (Zonensystem)</summary>
+          <div class="nr-seg" role="group" aria-label="Messwerte eingeben als">
+            <button type="button" class="btn ghost small" data-mode="settings" aria-pressed="true">Zeit + Blende</button>
+            <button type="button" class="btn ghost small" data-mode="lw" aria-pressed="false">LW / EV</button>
+          </div>
+          <fieldset>
+            <legend>Dunkelste Fläche mit Details</legend>
+            <div class="grid nr-set">
+              <div><label for="nr-dt">Zeit</label><select id="nr-dt"></select></div>
+              <div><label for="nr-da">Blende</label><select id="nr-da"></select></div>
+            </div>
+            <div class="nr-lw hidden"><label for="nr-dl">Lichtwert (LW)</label><input id="nr-dl" type="number" step="0.1" inputmode="decimal" value="8"></div>
+          </fieldset>
+          <fieldset>
+            <legend>Hellste Fläche mit Details</legend>
+            <div class="grid nr-set">
+              <div><label for="nr-bt">Zeit</label><select id="nr-bt"></select></div>
+              <div><label for="nr-ba">Blende</label><select id="nr-ba"></select></div>
+            </div>
+            <div class="nr-lw hidden"><label for="nr-bl">Lichtwert (LW)</label><input id="nr-bl" type="number" step="0.1" inputmode="decimal" value="11"></div>
+          </fieldset>
+          <label class="nr-check nr-set"><input type="checkbox" id="nr-keep-time"> Zeit behalten, Blende schließen</label>
+          <p class="hint">Die ISO musst du nicht eingeben, sie ist für beide Messungen gleich.</p>
+          <dl class="nr-facts" id="nr-facts"></dl>
+        </details>
+
+        <div class="nr-base">
+          <label for="nr-base">Normalzeit N aus dem Datenblatt (min:sek)</label>
+          <input id="nr-base" value="10:00" inputmode="numeric" placeholder="10:00">
+        </div>
+
+        <div class="nr-result" id="nr-result" aria-live="polite"></div>
+        <div class="tablewrap" id="nr-table"></div>
+        <ul class="hint nr-notes">
+          <li>Gilt <strong>nur für Schwarzweiß</strong>. Bei Farbe gibt es kein N+1/N−1, nur Push und Pull.</li>
+          <li>Gilt immer für die <strong>ganze Rolle</strong>. Eine gemischte Rolle wird immer N entwickelt.</li>
+          <li><strong>ISO bleibt</strong>, du belichtest normal auf die Schatten. N+1/N−1 ist kein Push oder Pull.</li>
+          <li><strong>Flaues Licht nie kürzer entwickeln</strong> (kein N−1, kein Pull).</li>
+        </ul>
+      </section>
       <section class="calc-box" id="box-dilution">
         <h3>Verdünnungsrechner</h3>
         <div class="grid">
@@ -852,6 +936,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
+<script src="nrechner.js"></script>
 <script>
 let db;
 try {
@@ -1370,6 +1455,87 @@ $("#hb-file").onchange = async (e) => {
   msg($("#hb-msg"), "Buchtext gespeichert.", "ok");
   setTimeout(() => msg($("#hb-msg"), ""), 2500);
 };
+
+/* ---------- N-Rechner (Rechenlogik in nrechner.js) ---------- */
+(() => {
+  const N = window.NRechner;
+  if (!N) return;
+  const st = { source: null, quickDev: null, mode: "settings" };
+  const opt = (list, fmt, sel) => list.map((v) =>
+    `<option value="${esc(v)}"${v === sel ? " selected" : ""}>${fmt(v)}</option>`).join("");
+  const tFmt = (v) => esc(v), aFmt = (v) => "f/" + esc(v.replace(".", ","));
+  $("#nr-dt").innerHTML = opt(N.TIMES, tFmt, "1/30");   $("#nr-da").innerHTML = opt(N.APERTURES, aFmt, "8");
+  $("#nr-bt").innerHTML = opt(N.TIMES, tFmt, "1/250");  $("#nr-ba").innerHTML = opt(N.APERTURES, aFmt, "8");
+
+  const fmtA = (a) => "f/" + String(a).replace(".", ",");
+  const fmtLW = (x) => "LW " + (+x).toLocaleString("de-DE", { maximumFractionDigits: 1 });
+
+  function render() {
+    const base = N.parseMinSec($("#nr-base").value), out = $("#nr-result"), facts = $("#nr-facts");
+    const baseOk = base > 0;
+    let dev = null, mark = "";
+    facts.innerHTML = "";
+    if (st.source === "measure") {
+      const r = N.calculate(st.mode === "lw"
+        ? { mode: "lw", dark: $("#nr-dl").value, bright: $("#nr-bl").value, baseSec: base }
+        : { mode: "settings", dark: { time: $("#nr-dt").value, aperture: $("#nr-da").value },
+            bright: { time: $("#nr-bt").value, aperture: $("#nr-ba").value },
+            keep: $("#nr-keep-time").checked ? "time" : "aperture", baseSec: base });
+      if (r.error) { out.innerHTML = `<p class="err">${esc(r.error)}</p>`; renderTable(base, null); return; }
+      const e = r.exposure;
+      const expo = e.error ? `<span class="err">${esc(e.error)}</span>` : e.lw != null ? esc(fmtLW(e.lw)) : `${esc(e.time)}, ${esc(fmtA(e.aperture))}`;
+      facts.innerHTML = `<dt>Stufen</dt><dd>${esc(r.stopsText)}</dd><dt>Belichtung</dt><dd>${expo} <span class="hint">(Schatten auf Zone III)</span></dd>` +
+        `<dt>Lichter landen</dt><dd>auf Zone ${esc(r.highlightZoneText)}</dd>`;
+      dev = r.dev;
+      out.innerHTML = `<div class="nr-big">${esc(r.devText)}${baseOk ? `<span class="dot">·</span>${N.formatMinSec(r.timeSec)}` : ""}</div>` +
+        (r.betweenText ? `<p><strong>${esc(r.betweenText)}</strong></p>` : "") +
+        `<p>Lichter auf Zone ${esc(r.highlightZoneText)}, Ziel Zone VII. Belichtung: ${expo}.</p>` +
+        `<p>${esc(r.reason)}</p>` +
+        (r.extreme ? `<p class="hint">${esc(N.EXTREME_HINT)}</p>` : "") +
+        `<p class="hint">Die Werte sind Startwerte. Notiere, was du gemacht hast, und passe sie nach den ersten Rollen an.</p>`;
+    } else if (st.source === "quick") {
+      dev = st.quickDev;
+      const why = { 1: "Trübes Licht: Die Lichter liegen zu tief. Länger entwickeln hebt sie an.",
+                    0: "Normales Licht: Die Lichter landen von selbst richtig.",
+                    "-1": "Hartes Licht: Die Lichter würden ausbrennen. Kürzer entwickeln hält sie zurück." }[dev];
+      out.innerHTML = `<div class="nr-big">${esc(N.labelN(dev))}${baseOk ? `<span class="dot">·</span>${N.formatMinSec(N.devTime(base, dev))}` : ""}</div>` +
+        `<p>${esc(why)}</p><p class="hint">Die Werte sind Startwerte. Notiere, was du gemacht hast, und passe sie nach den ersten Rollen an.</p>`;
+    } else {
+      out.innerHTML = `<p class="hint" style="margin:0">Wähle oben das Licht oder miss genau. Darunter stehen die Zeiten für alle Stufen.</p>`;
+    }
+    if (!baseOk) out.innerHTML += `<p class="err">Gib die Normalzeit als min:sek ein, z. B. 10:00.</p>`;
+    renderTable(base, dev);
+  }
+  function renderTable(base, dev) {
+    if (!(base > 0)) { $("#nr-table").innerHTML = ""; return; }
+    const f = (x) => (x === 4 / 3 ? "× 4/3" : "× " + x.toLocaleString("de-DE"));
+    $("#nr-table").innerHTML = `<table class="nr-times"><thead><tr><th>Stufe</th><th>Faktor</th><th>Zeit</th></tr></thead><tbody>` +
+      N.timeTable(base).map((r) => `<tr${r.dev === dev ? ' class="on"' : ""}><td>${r.label}</td><td>${f(r.factor)}</td><td>${N.formatMinSec(r.sec)}</td></tr>`).join("") +
+      `</tbody></table>`;
+  }
+  function setQuick(dev) {
+    st.source = "quick"; st.quickDev = dev;
+    document.querySelectorAll(".nr-quick .btn").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.dev === dev)));
+    render();
+  }
+  function useMeasure() {
+    st.source = "measure";
+    document.querySelectorAll(".nr-quick .btn").forEach((b) => b.setAttribute("aria-pressed", "false"));
+    render();
+  }
+  document.querySelectorAll(".nr-quick .btn").forEach((b) => (b.onclick = () => setQuick(+b.dataset.dev)));
+  document.querySelectorAll(".nr-seg .btn").forEach((b) => (b.onclick = () => {
+    st.mode = b.dataset.mode;
+    document.querySelectorAll(".nr-seg .btn").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    document.querySelectorAll("#nr-measure .nr-set").forEach((el) => el.classList.toggle("hidden", st.mode === "lw"));
+    document.querySelectorAll("#nr-measure .nr-lw").forEach((el) => el.classList.toggle("hidden", st.mode !== "lw"));
+    useMeasure();
+  }));
+  $("#nr-measure").addEventListener("toggle", (e) => { if (e.target.open) useMeasure(); });
+  ["#nr-dt", "#nr-da", "#nr-bt", "#nr-ba", "#nr-dl", "#nr-bl", "#nr-keep-time"].forEach((sel) => $(sel).addEventListener("input", useMeasure));
+  $("#nr-base").addEventListener("input", render);
+  render();
+})();
 
 /* ---------- Verdünnungsrechner ---------- */
 function calcDilution() {
