@@ -131,3 +131,16 @@ test("Temperaturkorrektur: 20 °C bleibt, wärmer kürzer, kälter länger", () 
   const r = N.calculate({ mode: "settings", dark: { time: "1/30", aperture: "8" }, bright: { time: "1/250", aperture: "8" }, keep: "aperture", baseSec: 600, tempC: 22 });
   assert.equal(N.formatMinSec(r.timeSec), "11:15");
 });
+
+test("Eigene Faktoren je Film und Entwickler ersetzen den Standard", () => {
+  const own = { 1: 1.3, "-1": 0.8 };
+  assert.equal(N.formatMinSec(N.devTime(600, 1, 20, own)), "13:00");     // 10:00 × 1,3
+  assert.equal(N.formatMinSec(N.devTime(600, -1, 20, own)), "8:00");
+  assert.equal(N.formatMinSec(N.devTime(600, 2, 20, own)), "17:30");     // nicht gesetzt: Standard
+  assert.equal(N.formatMinSec(N.devTime(600, 0, 20, own)), "10:00");      // N bleibt die Normalzeit
+  const t = N.timeTable(600, 20, own);
+  assert.equal(t.find((r) => r.dev === 1).own, true);
+  assert.equal(t.find((r) => r.dev === 2).own, false);
+  const r = N.calculate({ mode: "settings", dark: { time: "1/30", aperture: "8" }, bright: { time: "1/250", aperture: "8" }, keep: "aperture", baseSec: 600, factors: own });
+  assert.equal(N.formatMinSec(r.timeSec), "13:00");
+});
