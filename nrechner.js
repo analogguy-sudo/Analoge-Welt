@@ -10,6 +10,8 @@
   const TARGET_ZONE = 7;          // die Lichter sollen auf Zone VII landen
   const SHADOW_ZONE = 3;          // die Schatten legst du auf Zone III
   const ROUND_SEC = 15;           // Entwicklungszeit auf 15 Sekunden runden
+  // Temperaturkorrektur (Richtwert für Schwarzweiß-Entwickler): pro °C wärmer etwa 8 % kürzer, pro °C kälter länger.
+  const BASE_TEMP = 20, TEMP_FACTOR_PER_C = 0.92, TEMP_MIN = 18, TEMP_MAX = 24;
 
   // Belichtungszeiten in Drittelstufen, von lang nach kurz (jeder Schritt = ⅓ Stufe weniger Licht).
   // Ganze Stufen stehen an jeder dritten Stelle: 30 s, 15 s, 8 s … 1/30, 1/60, 1/125 … 1/4000.
@@ -99,12 +101,19 @@
     const r = Math.round(sec);
     return Math.floor(r / 60) + ":" + String(r % 60).padStart(2, "0");
   }
-  // Entwicklungszeit für eine Stufe, gerundet auf 15 Sekunden
-  function devTime(baseSec, dev) {
-    return Math.round((baseSec * FACTORS[dev]) / ROUND_SEC) * ROUND_SEC;
+  // Faktor für eine andere Temperatur als 20 °C (Normalzeit aus dem Datenblatt gilt für 20 °C)
+  function tempFactor(tempC) {
+    const t = tempC == null || tempC === "" ? BASE_TEMP : +tempC;
+    return isFinite(t) ? Math.pow(TEMP_FACTOR_PER_C, t - BASE_TEMP) : NaN;
   }
-  function timeTable(baseSec) {
-    return [2, 1, 0, -1, -2].map((dev) => ({ dev, label: labelN(dev), factor: FACTORS[dev], sec: devTime(baseSec, dev) }));
+  // Ist die Temperatur noch im Bereich, in dem die Korrektur verlässlich ist?
+  const tempInRange = (tempC) => +tempC >= TEMP_MIN && +tempC <= TEMP_MAX;
+  // Entwicklungszeit für eine Stufe (und Temperatur), gerundet auf 15 Sekunden
+  function devTime(baseSec, dev, tempC) {
+    return Math.round((baseSec * FACTORS[dev] * tempFactor(tempC)) / ROUND_SEC) * ROUND_SEC;
+  }
+  function timeTable(baseSec, tempC) {
+    return [2, 1, 0, -1, -2].map((dev) => ({ dev, label: labelN(dev), factor: FACTORS[dev], sec: devTime(baseSec, dev, tempC) }));
   }
 
   function reason(stops, dev, zone) {
@@ -142,13 +151,14 @@
       extreme: devInfo.extreme,
       reason: reason(stops, devInfo.dev, devInfo.highlightZone),
     };
-    if (input.baseSec > 0) res.timeSec = devTime(input.baseSec, devInfo.dev);
+    if (input.baseSec > 0) res.timeSec = devTime(input.baseSec, devInfo.dev, input.tempC);
     return res;
   }
 
   const api = {
     FACTORS, TIMES, APERTURES, isFull, timeIndex, apertureIndex, thirdsOf, roundStops, formatStops,
     zoneRoman, labelN, development, exposure, parseMinSec, formatMinSec, devTime, timeTable, calculate,
+    tempFactor, tempInRange, BASE_TEMP, TEMP_MIN, TEMP_MAX,
     EXTREME_HINT: "Extremfall. Mehr Kontrast holst du einfacher beim Vergrößern (härtere Gradation). Bei sehr hartem Licht hilft Standentwicklung.",
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

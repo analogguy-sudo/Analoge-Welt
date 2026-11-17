@@ -358,7 +358,9 @@
   .nr-measure fieldset { margin-top: .8rem; }
   .nr-measure .grid.nr-set { grid-template-columns: 1fr 1fr; gap: .6rem; }
   .nr-measure legend { font-size: 1.1rem; }
-  .nr-measure select, .nr-measure input, #nr-base { font-size: 1.05rem; min-height: 2.75rem; }
+  .nr-measure select, .nr-measure input, #nr-base, #nr-temp { font-size: 1.05rem; min-height: 2.75rem; }
+  .nr-base.grid { grid-template-columns: 1fr 1fr; gap: .6rem; }
+  #nr-temp-hint:empty { display: none; }
   .nr-check { display: flex; align-items: center; gap: .55rem; margin: .9rem 0 .2rem; font-size: .95rem; color: var(--text); cursor: pointer; }
   .nr-check input { width: 1.2rem; height: 1.2rem; min-height: 0; margin: 0; accent-color: var(--amber); }
   .nr-facts { display: grid; grid-template-columns: auto 1fr; gap: .35rem 1rem; margin: .9rem 0 0; font-size: .95rem; }
@@ -559,10 +561,14 @@
           <dl class="nr-facts" id="nr-facts"></dl>
         </details>
 
-        <div class="nr-base">
-          <label for="nr-base">Normalzeit N aus dem Datenblatt (min:sek)</label>
-          <input id="nr-base" value="10:00" inputmode="numeric" placeholder="10:00">
+        <div class="grid nr-base">
+          <div><label for="nr-base">Normalzeit N (min:sek)</label>
+            <input id="nr-base" value="10:00" inputmode="numeric" placeholder="10:00"></div>
+          <div><label for="nr-temp">Temperatur (°C)</label>
+            <input id="nr-temp" type="number" step="0.5" min="10" max="30" value="20" inputmode="decimal"></div>
         </div>
+        <p class="hint" style="margin:.35rem 0 0">Die Normalzeit steht im Datenblatt und gilt für 20 °C.</p>
+        <p class="hint" id="nr-temp-hint"></p>
 
         <div class="nr-result" id="nr-result" aria-live="polite"></div>
         <div class="tablewrap" id="nr-table"></div>
@@ -962,7 +968,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
-<script src="nrechner.js"></script>
+<script src="nrechner.js?v=2"></script>
 <script>
 let db;
 try {
@@ -1511,22 +1517,30 @@ $("#hb-file").onchange = async (e) => {
 
   function render() {
     const base = N.parseMinSec($("#nr-base").value), out = $("#nr-result"), facts = $("#nr-facts");
+    const tempRaw = $("#nr-temp").value, temp = tempRaw === "" ? N.BASE_TEMP : +tempRaw;
+    const tempOk = isFinite(temp) && temp >= 10 && temp <= 30;
+    const tempNote = !tempOk ? "" : temp === N.BASE_TEMP ? "" : ` bei ${temp.toLocaleString("de-DE")} °C`;
+    $("#nr-temp-hint").textContent = !tempOk ? "Gib die Temperatur zwischen 10 und 30 °C ein."
+      : !N.tempInRange(temp) ? `Außerhalb von ${N.TEMP_MIN}–${N.TEMP_MAX} °C wird die Korrektur ungenau. Bring die Chemie besser auf 20 °C.`
+      : temp !== N.BASE_TEMP ? `Zeiten umgerechnet von 20 °C auf ${temp.toLocaleString("de-DE")} °C (Richtwert: pro Grad wärmer etwa 8 % kürzer).` : "";
+    const T = tempOk ? temp : N.BASE_TEMP;
     const baseOk = base > 0;
     let dev = null, mark = "";
     facts.innerHTML = "";
     if (st.source === "measure") {
       const r = N.calculate(st.mode === "lw"
-        ? { mode: "lw", dark: $("#nr-dl").value, bright: $("#nr-bl").value, baseSec: base }
+        ? { mode: "lw", dark: $("#nr-dl").value, bright: $("#nr-bl").value, baseSec: base, tempC: T }
         : { mode: "settings", dark: { time: $("#nr-dt").value, aperture: $("#nr-da").value },
             bright: { time: $("#nr-bt").value, aperture: $("#nr-ba").value },
-            keep: $("#nr-keep-time").checked ? "time" : "aperture", baseSec: base });
-      if (r.error) { out.innerHTML = `<p class="err">${esc(r.error)}</p>`; renderTable(base, null); return; }
+            keep: $("#nr-keep-time").checked ? "time" : "aperture", baseSec: base, tempC: T });
+      if (r.error) { out.innerHTML = `<p class="err">${esc(r.error)}</p>`; renderTable(base, null, T); return; }
       const e = r.exposure;
       const expo = e.error ? `<span class="err">${esc(e.error)}</span>` : e.lw != null ? esc(fmtLW(e.lw)) : `${esc(e.time)}, ${esc(fmtA(e.aperture))}`;
       facts.innerHTML = `<dt>Stufen</dt><dd>${esc(r.stopsText)}</dd><dt>Belichtung</dt><dd>${expo} <span class="hint">(Schatten auf Zone III)</span></dd>` +
         `<dt>Lichter landen</dt><dd>auf Zone ${esc(r.highlightZoneText)}</dd>`;
       dev = r.dev;
       out.innerHTML = `<div class="nr-big">${esc(r.devText)}${baseOk ? `<span class="dot">·</span>${N.formatMinSec(r.timeSec)}` : ""}</div>` +
+        (baseOk && tempNote ? `<p class="hint" style="margin-top:.1rem">${esc(tempNote.trim())}</p>` : "") +
         (r.betweenText ? `<p><strong>${esc(r.betweenText)}</strong></p>` : "") +
         `<p>Lichter auf Zone ${esc(r.highlightZoneText)}, Ziel Zone VII. Belichtung: ${expo}.</p>` +
         `<p>${esc(r.reason)}</p>` +
@@ -1537,19 +1551,20 @@ $("#hb-file").onchange = async (e) => {
       const why = { 1: "Trübes Licht: Die Lichter liegen zu tief. Länger entwickeln hebt sie an.",
                     0: "Normales Licht: Die Lichter landen von selbst richtig.",
                     "-1": "Hartes Licht: Die Lichter würden ausbrennen. Kürzer entwickeln hält sie zurück." }[dev];
-      out.innerHTML = `<div class="nr-big">${esc(N.labelN(dev))}${baseOk ? `<span class="dot">·</span>${N.formatMinSec(N.devTime(base, dev))}` : ""}</div>` +
+      out.innerHTML = `<div class="nr-big">${esc(N.labelN(dev))}${baseOk ? `<span class="dot">·</span>${N.formatMinSec(N.devTime(base, dev, T))}` : ""}</div>` +
+        (baseOk && tempNote ? `<p class="hint" style="margin-top:.1rem">${esc(tempNote.trim())}</p>` : "") +
         `<p>${esc(why)}</p><p class="hint">Die Werte sind Startwerte. Notiere, was du gemacht hast, und passe sie nach den ersten Rollen an.</p>`;
     } else {
       out.innerHTML = `<p class="hint" style="margin:0">Wähle oben das Licht oder miss genau. Darunter stehen die Zeiten für alle Stufen.</p>`;
     }
     if (!baseOk) out.innerHTML += `<p class="err">Gib die Normalzeit als min:sek ein, z. B. 10:00.</p>`;
-    renderTable(base, dev);
+    renderTable(base, dev, T);
   }
-  function renderTable(base, dev) {
+  function renderTable(base, dev, temp) {
     if (!(base > 0)) { $("#nr-table").innerHTML = ""; return; }
     const f = (x) => (x === 4 / 3 ? "× 4/3" : "× " + x.toLocaleString("de-DE"));
     $("#nr-table").innerHTML = `<table class="nr-times"><thead><tr><th>Stufe</th><th>Faktor</th><th>Zeit</th></tr></thead><tbody>` +
-      N.timeTable(base).map((r) => `<tr${r.dev === dev ? ' class="on"' : ""}><td>${r.label}</td><td>${f(r.factor)}</td><td>${N.formatMinSec(r.sec)}</td></tr>`).join("") +
+      N.timeTable(base, temp).map((r) => `<tr${r.dev === dev ? ' class="on"' : ""}><td>${r.label}</td><td>${f(r.factor)}</td><td>${N.formatMinSec(r.sec)}</td></tr>`).join("") +
       `</tbody></table>`;
   }
   function setQuick(dev) {
@@ -1573,6 +1588,7 @@ $("#hb-file").onchange = async (e) => {
   $("#nr-measure").addEventListener("toggle", (e) => { if (e.target.open) useMeasure(); });
   ["#nr-dt", "#nr-da", "#nr-bt", "#nr-ba", "#nr-dl", "#nr-bl", "#nr-keep-time"].forEach((sel) => $(sel).addEventListener("input", useMeasure));
   $("#nr-base").addEventListener("input", render);
+  $("#nr-temp").addEventListener("input", render);
   render();
 })();
 

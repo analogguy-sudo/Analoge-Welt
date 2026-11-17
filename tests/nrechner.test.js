@@ -119,3 +119,15 @@ test("Grenzen der Reihe: kürzer als 1/4000 geht nicht", () => {
   const r = calc(at("1/2000", "8"), at("1/2000", "22"));
   assert.match(r.exposure.error, /1\/4000/);
 });
+
+test("Temperaturkorrektur: 20 °C bleibt, wärmer kürzer, kälter länger", () => {
+  assert.equal(N.formatMinSec(N.devTime(600, 0, 20)), "10:00");
+  assert.equal(N.formatMinSec(N.devTime(600, 0)), "10:00");            // ohne Angabe: 20 °C
+  assert.equal(N.formatMinSec(N.devTime(600, 0, 24)), "7:15");
+  assert.equal(N.formatMinSec(N.devTime(600, 0, 18)), "11:45");
+  assert.equal(N.formatMinSec(N.devTime(600, 1, 22)), "11:15");         // N+1 bei 22 °C
+  assert.equal(N.tempInRange(21), true);
+  assert.equal(N.tempInRange(26), false);
+  const r = N.calculate({ mode: "settings", dark: { time: "1/30", aperture: "8" }, bright: { time: "1/250", aperture: "8" }, keep: "aperture", baseSec: 600, tempC: 22 });
+  assert.equal(N.formatMinSec(r.timeSec), "11:15");
+});
