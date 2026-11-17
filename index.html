@@ -4,10 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+<link rel="icon" href="favicon.ico?v=2" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<link rel="manifest" href="manifest.webmanifest?v=2">
 <meta name="theme-color" content="#17120f">
 <meta name="apple-mobile-web-app-title" content="Analogbook">
 <title>Analoge Welt der Fotografie</title>
@@ -307,12 +308,17 @@
   .hb-flash { animation: hbflash 2.2s ease-out; }
   @keyframes hbflash { from { background: rgba(224,145,47,.45); } to { background: transparent; } }
 
-  .hb-pg.cover { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
-                 padding: 12%; color: #f1dcb2; background: radial-gradient(120% 90% at 30% 20%, #7a5233, #4a2f1b 70%, #3a2414); }
+  /* Umschlag wie die gedruckte Hardcover-Ausgabe */
+  .hb-pg.cover { display: flex; flex-direction: column; align-items: center; text-align: center;
+                 padding: 15% 10% 11%; color: #efe4cf; background: #382a21;
+                 background-image: radial-gradient(130% 90% at 30% 15%, rgba(255,235,200,.07), rgba(0,0,0,0) 60%); }
   .hb-pg.cover::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 5%; background: linear-gradient(to right, rgba(0,0,0,.35), transparent); }
-  .hb-cv-logo { width: 34%; opacity: .9; margin-bottom: 9%; }
-  .hb-cv-t { font-family: var(--serif); font-size: calc(var(--pw) * .135); line-height: 1; }
-  .hb-cv-s { font-family: var(--serif); font-size: calc(var(--pw) * .052); margin-top: .9em; opacity: .85; }
+  .hb-cv-t { font: 400 calc(var(--pw) * .085)/1 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+             letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+  .hb-cv-logo { width: 50%; margin-top: 13%; }
+  .hb-cv-line { width: 24%; height: 0; border-top: 1px solid currentColor; opacity: .8; margin-top: 7%; }
+  .hb-cv-s { font: 400 calc(var(--pw) * .05)/1.35 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; margin-top: 5%; }
+  .hb-cv-a { margin-top: auto; font: 500 calc(var(--pw) * .03)/1 var(--sans); letter-spacing: .2em; text-transform: uppercase; opacity: .9; }
   .hb-pg.blank { background: linear-gradient(to left, #e6dcc6, var(--paper)); }
 
   .hb-foot { display: flex; align-items: center; gap: .8rem; width: calc(var(--pw) * 2); max-width: 100%; margin: .8rem auto 0;
@@ -1208,16 +1214,11 @@ function hbPosLabel(pos) {
   return r <= last ? `Seite ${l}–${r} von ${last}` : `Seite ${l} von ${last}`;
 }
 
-const HB_COVER = (() => {
-  let blades = "";
-  for (let k = 0; k < 6; k++) {
-    const a = k * Math.PI / 3, b = a + 1.25;
-    blades += `<line x1="${(50 + 17 * Math.cos(a)).toFixed(1)}" y1="${(50 + 17 * Math.sin(a)).toFixed(1)}" x2="${(50 + 45 * Math.cos(b)).toFixed(1)}" y2="${(50 + 45 * Math.sin(b)).toFixed(1)}"/>`;
-  }
-  return `<svg class="hb-cv-logo" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4">
-    <circle cx="50" cy="50" r="45"/>${blades}</g></svg>
-    <div class="hb-cv-t">Analoge Welt</div><div class="hb-cv-s">Das Handbuch für Film und Dunkelkammer</div>`;
-})();
+const HB_COVER = `<div class="hb-cv-t">Analoge Welt</div>
+  <img class="hb-cv-logo" src="handbuch-logo.svg?v=2" alt="" draggable="false">
+  <div class="hb-cv-line"></div>
+  <div class="hb-cv-s">Das Handbuch für<br>Film und Dunkelkammer</div>
+  <div class="hb-cv-a">Alexander Tobias Fichter</div>`;
 
 // Fertige Seiten werden zwischengespeichert, damit das Umblättern flüssig bleibt
 function hbPage(i) {
