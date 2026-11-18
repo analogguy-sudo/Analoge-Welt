@@ -313,6 +313,9 @@
   .hb-end { height: 1px; }
   .hb-flow .hb-brk { break-before: column; }   /* von hbKeepTogether gesetzt */
   .hb-slice > :first-child { margin-top: var(--first-mt, 0) !important; }   /* gleicher Abstand oben wie im ganzen Buch */
+  .hb-slice > :first-child { break-before: auto !important; -webkit-column-break-before: auto !important; }   /* sonst setzt Safari/WebKit eine leere Spalte davor */
+  .hb-flow figure.hb-sketch { width: 72%; margin: .6em auto .3em; break-inside: avoid; }
+  .hb-flow figure.hb-sketch img { display: block; width: 100%; height: auto; aspect-ratio: 480 / 760; }
   .hb-flash { animation: hbflash 2.2s ease-out; }
   @keyframes hbflash { from { background: rgba(224,145,47,.45); } to { background: transparent; } }
 
@@ -1231,6 +1234,14 @@ function renderHandbuch(md) {
       const next = el.nextElementSibling; part.appendChild(el); el = next;
     }
   });
+  // Platzhalter „[Skizze: …]“ durch die Zeichnung ersetzen
+  body.querySelectorAll("p").forEach((p) => {
+    if (/^\\?\[Skizze: Objektmessung und Lichtmessung\\?\]$/.test(p.textContent.trim())) {
+      const f = document.createElement("figure"); f.className = "hb-sketch";
+      f.innerHTML = '<img src="handbuch-skizze-messung.svg?v=1" alt="Zwei Wege, Licht im Nebel zu messen: Objektmessung und Lichtmessung">';
+      p.replaceWith(f);
+    }
+  });
   // Inhaltsverzeichnis: Teile als Gruppen, Kapitel darunter
   let toc = '<option value="">Inhalt: Kapitel wählen …</option>', open = false;
   body.querySelectorAll("h2, h3").forEach((h) => {
@@ -1303,7 +1314,7 @@ function hbLayout(force) {
 // Der Spaltenumbruch des Browsers beachtet „break-after: avoid“ nicht zuverlässig, deshalb wird hier nachgemessen.
 function hbKeepTogether(body) {
   body.querySelectorAll(".hb-brk").forEach((el) => el.classList.remove("hb-brk"));
-  const key = "hbBrk3:" + hbHash + ":" + [HB.mode, HB.W, HB.H].join("x");
+  const key = "hbBrk4:" + hbHash + ":" + [HB.mode, HB.W, HB.H].join("x");
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(key) || "null"); } catch {}
   const kids = [...body.children];
