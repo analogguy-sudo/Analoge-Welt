@@ -311,6 +311,7 @@
   .hb-part p { text-align: center; hyphens: manual; -webkit-hyphens: manual; }
   .hb-titlepage p { text-align: center; }
   .hb-end { height: 1px; }
+  .hb-flow .hb-brk { break-before: column; }   /* von hbKeepTogether gesetzt */
   .hb-slice > :first-child { margin-top: var(--first-mt, 0) !important; }   /* gleicher Abstand oben wie im ganzen Buch */
   .hb-flash { animation: hbflash 2.2s ease-out; }
   @keyframes hbflash { from { background: rgba(224,145,47,.45); } to { background: transparent; } }
@@ -1109,7 +1110,7 @@ $("#view-guide").addEventListener("click", (e) => {
 /* ---------- Handbuch (nur für Admins, Text liegt in der Tabelle „handbuch“) ---------- */
 // Das Buch wird in Seiten umgebrochen (CSS-Spalten in einer unsichtbaren Messfläche).
 // Jede sichtbare Seite zeigt denselben Text, nur um die passende Spaltenbreite verschoben.
-let hbLoaded = false, hbBlocks = [], hbHtml = "";
+let hbLoaded = false, hbBlocks = [], hbHtml = "", hbHash = "";
 const HB = { mode: "", W: 0, H: 0, pages: 0, stride: 0, pos: 0, teil: [], starts: new Set(), pageOf: {}, cache: new Map(), busy: false };
 const hbReduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -1248,6 +1249,8 @@ function renderHandbuch(md) {
     hbBlocks.push({ el, chapter, text });
   });
   hbHtml = body.innerHTML.replace(/ id="hb-\d+"/g, "");
+  let h = 0; for (let k = 0; k < md.length; k++) h = (h * 31 + md.charCodeAt(k)) | 0;
+  hbHash = (h >>> 0).toString(36) + "-" + md.length;
   $("#hb-q").value = ""; $("#hb-hits").innerHTML = "";
   HB.mode = "";
 }
@@ -1263,7 +1266,9 @@ function hbLayout(force) {
     const wrap = $("#hb-wrap");
     mode = "single"; W = Math.floor(wrap.clientWidth); H = Math.floor(wrap.clientHeight);
   } else {
-    const availH = Math.max(440, window.innerHeight - 130);
+    // Buch so hoch, dass Leiste oben, Buch und Seitenzähler zusammen ins Fenster passen (sonst verdeckt die Leiste den Seitenkopf)
+    const chrome = ($(".hb-bar")?.offsetHeight || 60) + ($(".hb-foot")?.offsetHeight || 40) + 56;
+    const availH = Math.max(420, window.innerHeight - chrome);
     mode = "spread"; W = Math.floor(Math.min(availH / 1.42, (view.clientWidth - 4) / 2)); H = Math.floor(W * 1.42);
   }
   if (W < 200 || H < 260) return;
@@ -1277,6 +1282,7 @@ function hbLayout(force) {
   for (const [k, v] of Object.entries({ pw: W, ph: H, px, pt, pb, cw, ch, gap, fs })) view.style.setProperty("--" + k, v + "px");
   HB.stride = cw + gap;
   const body = $("#hb-body");
+  hbKeepTogether(body);
   HB.pages = hbAt(body.querySelector(".hb-end")) + 1;   // Seite 0 ist der Umschlag
   HB.pageOf = {};
   body.querySelectorAll("h2[id], h3[id]").forEach((h) => { HB.pageOf[h.id] = hbAt(h); });
@@ -1291,6 +1297,62 @@ function hbLayout(force) {
   if (ratio != null) page = Math.round(ratio * (HB.pages - 1));
   else { try { page = +localStorage.getItem("hbPage") || 0; } catch { page = 0; } }
   hbGoto(page);
+}
+// Überschriften nie allein unten auf einer Seite: Beginnt der Text danach erst auf der nächsten Seite,
+// rutscht die Überschrift mit (ebenso Einleitungssätze mit Doppelpunkt und Tabellenköpfe ohne Zeilen).
+// Der Spaltenumbruch des Browsers beachtet „break-after: avoid“ nicht zuverlässig, deshalb wird hier nachgemessen.
+function hbKeepTogether(body) {
+  body.querySelectorAll(".hb-brk").forEach((el) => el.classList.remove("hb-brk"));
+  const key = "hbBrk2:" + hbHash + ":" + [HB.mode, HB.W, HB.H].join("x");
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(key) || "null"); } catch {}
+  const kids = [...body.children];
+  if (Array.isArray(saved)) { saved.forEach((i) => kids[i]?.classList.add("hb-brk")); return; }
+  const range = document.createRange();
+  const pages = (el) => {
+    const bl = body.getBoundingClientRect().left;
+    range.selectNodeContents(el);
+    const ps = [...range.getClientRects()].filter((r) => r.width && r.height).map((r) => Math.floor((r.left - bl + 2) / HB.stride));
+    return ps.length ? ps : [Math.floor((el.getBoundingClientRect().left - bl + 2) / HB.stride)];
+  };
+  const isHead = (el) => /^H[234]$/.test(el.tagName);
+  const isLead = (el) => el.tagName === "P" && /:\s*$/.test(el.textContent) && el.textContent.length < 220 &&
+    el.nextElementSibling && /^(UL|OL|DIV)$/.test(el.nextElementSibling.tagName);
+  const glue = (el) => isHead(el) || isLead(el);
+  const marks = [];
+  for (let i = 0; i < kids.length - 1; i++) {
+    const el = kids[i];
+    let orphan = false;
+    if (glue(el)) {
+      const last = Math.max(...pages(el)), nxt = kids[i + 1], np = pages(nxt), first = Math.min(...np);
+      // Allein am Seitenende, oder nur eine einzige Zeile Text darunter (bei mehrzeiligem Text)
+      orphan = first > last || (first === last && hbLinesOn(nxt, last, body) < 2 && hbLinesOn(nxt, null, body) >= 2);
+    } else if (el.classList.contains("tablewrap")) {   // Tabellenkopf ohne Zeile darunter
+      const head = el.querySelector("thead"), row = el.querySelector("tbody tr");
+      if (head && row) orphan = Math.min(...pages(row)) > Math.max(...pages(head));
+    }
+    if (!orphan) continue;
+    // Gleich mitnehmen: Überschriften/Einleitungen direkt davor auf derselben Seite
+    let t = i;
+    const pg = Math.min(...pages(el));
+    while (t > 0 && glue(kids[t - 1]) && Math.max(...pages(kids[t - 1])) === pg) t--;
+    // Steht der Block schon oben auf der Seite, hilft ein Umbruch nicht
+    const prev = kids[t - 1];
+    if (!prev || Math.max(...pages(prev)) < pg) continue;
+    kids[t].classList.add("hb-brk"); marks.push(t);
+  }
+  try { localStorage.setItem(key, JSON.stringify(marks)); } catch {}
+}
+// Wie viele Textzeilen eines Blocks liegen auf einer Seite (oder insgesamt, page = null)?
+function hbLinesOn(el, page, body) {
+  const bl = body.getBoundingClientRect().left, r = document.createRange(); r.selectNodeContents(el);
+  const tops = new Set();
+  for (const q of r.getClientRects()) {
+    if (!q.width || !q.height) continue;
+    if (page != null && Math.floor((q.left - bl + 2) / HB.stride) !== page) continue;
+    tops.add(Math.round(q.top / 4));   // gleiche Zeile = gleiche Höhe (auf 4 px gerundet)
+  }
+  return tops.size;
 }
 // Für jeden obersten Block (Absatz, Liste, Tabelle …): auf welchen Buchseiten liegt er?
 // Damit bekommt jede Seite nur die Blöcke, die sie zeigt, statt des ganzen Buchs. Das spart beim Blättern viel Rechenzeit.
