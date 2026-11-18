@@ -311,6 +311,7 @@
   .hb-part p { text-align: center; hyphens: manual; -webkit-hyphens: manual; }
   .hb-titlepage p { text-align: center; }
   .hb-end { height: 1px; }
+  .hb-slice > :first-child { margin-top: var(--first-mt, 0) !important; }   /* gleicher Abstand oben wie im ganzen Buch */
   .hb-flash { animation: hbflash 2.2s ease-out; }
   @keyframes hbflash { from { background: rgba(224,145,47,.45); } to { background: transparent; } }
 
@@ -1275,11 +1276,36 @@ function hbLayout(force) {
   h2s.forEach(([p]) => HB.starts.add(p));
   let cur = "";
   for (let i = 0; i < HB.pages; i++) { for (const [p, t] of h2s) if (p === i) cur = t; HB.teil[i] = cur; }
+  hbSlices(body);
   HB.cache.clear();
   let page = 0;
   if (ratio != null) page = Math.round(ratio * (HB.pages - 1));
   else { try { page = +localStorage.getItem("hbPage") || 0; } catch { page = 0; } }
   hbGoto(page);
+}
+// Für jeden obersten Block (Absatz, Liste, Tabelle …): auf welchen Buchseiten liegt er?
+// Damit bekommt jede Seite nur die Blöcke, die sie zeigt, statt des ganzen Buchs. Das spart beim Blättern viel Rechenzeit.
+function hbSlices(body) {
+  const bb = body.getBoundingClientRect(), bl = bb.left, pg = (x) => Math.floor((x - bl + 2) / HB.stride) + 1;
+  const range = document.createRange();
+  HB.blk = [...body.children].map((c) => {
+    range.selectNodeContents(c);
+    const ps = [...range.getClientRects()].filter((r) => r.width || r.height).map((r) => pg(r.left));
+    ps.push(pg(c.getBoundingClientRect().left));
+    const first = c.getClientRects()[0] || c.getBoundingClientRect();
+    return { s: Math.min(...ps), e: Math.max(...ps), top: first.top - bb.top,   // Abstand vom Spaltenanfang, wie er im ganzen Buch entsteht
+      html: c.outerHTML.replace(/ id="hb-\d+"/g, "") };
+  });
+  HB.cont = new Set();   // Seiten, die mit der Fortsetzung eines Blocks von der Vorseite beginnen
+  HB.blk.forEach((b) => { for (let p = b.s + 1; p <= b.e; p++) HB.cont.add(p); });
+}
+function hbSliceHtml(i) {
+  let k = i;
+  while (k > 1 && HB.cont.has(k)) k--;          // letzte Seite davor, die mit einem neuen Block beginnt
+  const first = HB.blk.findIndex((b) => b.s === k);
+  if (first < 0) return { html: hbHtml, off: i - 1, mt: null };
+  const html = HB.blk.slice(first).filter((b) => b.s <= i).map((b) => b.html).join("");
+  return { html, off: i - k, mt: Math.max(0, HB.blk[first].top) };
 }
 // Auf welcher Buchseite beginnt ein Element der Messfläche?
 function hbAt(el) {
@@ -1312,7 +1338,8 @@ function hbPage(i) {
   else {
     el.className = "hb-pg";
     const head = HB.starts.has(i) || i === 1 ? "" : esc(HB.mode === "spread" && i % 2 === 1 ? "Analoge Welt" : HB.teil[i]);
-    el.innerHTML = `<div class="hb-head">${head}</div><div class="hb-clip"><div class="hb-flow" style="left:${-(i - 1) * HB.stride}px">${hbHtml}</div></div><div class="hb-num">${i}</div>`;
+    const sl = hbSliceHtml(i);
+    el.innerHTML = `<div class="hb-head">${head}</div><div class="hb-clip"><div class="hb-flow${sl.mt == null ? "" : " hb-slice"}" style="left:${-sl.off * HB.stride}px;--first-mt:${sl.mt || 0}px">${sl.html}</div></div><div class="hb-num">${i}</div>`;
   }
   HB.cache.set(i, el);
   if (HB.cache.size > 12) for (const [k, v] of HB.cache) if (!v.isConnected) { HB.cache.delete(k); if (HB.cache.size <= 12) break; }
