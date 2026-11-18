@@ -290,9 +290,9 @@
              font: var(--fs)/1.55 "Inter", var(--sans); color: var(--ink);   /* wie im gedruckten Buch: Inter, linksbündig, ohne Trennung */
              hyphens: manual; -webkit-hyphens: manual; overflow-wrap: break-word; }
   .hb-flow h2, .hb-flow h3, .hb-flow h4 { font-family: "Lora", Georgia, serif; font-weight: 600; line-height: 1.2; break-after: avoid; }
-  .hb-flow h2 { break-before: column; font-size: 1.85em; color: var(--accent); padding-top: calc(var(--ch) * .2); margin: 0 0 .7em; }
+  .hb-flow h2 { break-before: column; font-size: 1.85em; padding-top: calc(var(--ch) * .2); margin: 0 0 .7em; }
   .hb-flow h3 { font-size: 1.32em; margin: 1.1em 0 .4em; }
-  .hb-flow h4 { font-size: 1.1em; margin: .9em 0 .3em; color: var(--accent); }
+  .hb-flow h4 { font-size: 1.1em; margin: .9em 0 .3em; }
   .hb-flow p { margin: 0 0 .65em; text-align: left; orphans: 2; widows: 2; }
   .hb-flow ul, .hb-flow ol { padding-left: 1.2em; margin: .3em 0 .7em; }
   .hb-flow li { margin-bottom: .3em; }
@@ -1303,7 +1303,7 @@ function hbLayout(force) {
 // Der Spaltenumbruch des Browsers beachtet „break-after: avoid“ nicht zuverlässig, deshalb wird hier nachgemessen.
 function hbKeepTogether(body) {
   body.querySelectorAll(".hb-brk").forEach((el) => el.classList.remove("hb-brk"));
-  const key = "hbBrk2:" + hbHash + ":" + [HB.mode, HB.W, HB.H].join("x");
+  const key = "hbBrk3:" + hbHash + ":" + [HB.mode, HB.W, HB.H].join("x");
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(key) || "null"); } catch {}
   const kids = [...body.children];
@@ -1320,10 +1320,23 @@ function hbKeepTogether(body) {
     el.nextElementSibling && /^(UL|OL|DIV)$/.test(el.nextElementSibling.tagName);
   const glue = (el) => isHead(el) || isLead(el);
   const marks = [];
+  // Kapitel beginnen immer auf einer neuen Seite (außer direkt nach Titel- oder Teil-Seite, die enden ohnehin mit Seitenwechsel)
+  kids.forEach((el, i) => {
+    if (el.tagName !== "H3" || i === 0) return;
+    const prev = kids[i - 1];
+    if (prev.classList.contains("hb-part") || prev.classList.contains("hb-titlepage")) return;
+    el.classList.add("hb-brk"); marks.push(i);
+  });
+  const colH = body.getBoundingClientRect().height, bodyTop = () => body.getBoundingClientRect().top;
   for (let i = 0; i < kids.length - 1; i++) {
     const el = kids[i];
     let orphan = false;
-    if (glue(el)) {
+    // Unterkapitel nie im unteren Drittel einer Seite beginnen
+    if (el.tagName === "H4") {
+      const r = el.getClientRects()[0];
+      if (r && r.top - bodyTop() > colH * 0.62) orphan = true;
+    }
+    if (!orphan && glue(el)) {
       const last = Math.max(...pages(el)), nxt = kids[i + 1], np = pages(nxt), first = Math.min(...np);
       // Allein am Seitenende, oder nur eine einzige Zeile Text darunter (bei mehrzeiligem Text)
       orphan = first > last || (first === last && hbLinesOn(nxt, last, body) < 2 && hbLinesOn(nxt, null, body) >= 2);
