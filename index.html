@@ -13,7 +13,7 @@
 <title>Analoge Welt der Fotografie</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700&family=Instrument+Serif&family=Inter:wght@400;600&family=Lora:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #17120f;
@@ -287,13 +287,13 @@
   .hb-clip { position: absolute; left: var(--px); top: var(--pt); width: var(--cw); height: var(--ch); overflow: hidden; }
   .hb-flow { position: absolute; top: 0; left: 0; width: var(--cw); height: var(--ch);
              column-width: var(--cw); column-gap: var(--gap); column-fill: auto;
-             font: var(--fs)/1.5 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; color: var(--ink);
-             hyphens: auto; -webkit-hyphens: auto; overflow-wrap: break-word; }
-  .hb-flow h2, .hb-flow h3, .hb-flow h4 { font-family: var(--serif); font-weight: 400; line-height: 1.12; break-after: avoid; }
-  .hb-flow h2 { break-before: column; font-size: 2.15em; color: var(--accent); padding-top: calc(var(--ch) * .2); margin: 0 0 .7em; }
-  .hb-flow h3 { font-size: 1.5em; margin: 1.1em 0 .35em; }
-  .hb-flow h4 { font-size: 1.18em; margin: .9em 0 .25em; color: var(--accent); }
-  .hb-flow p { margin: 0 0 .6em; text-align: justify; orphans: 2; widows: 2; }
+             font: var(--fs)/1.55 "Inter", var(--sans); color: var(--ink);   /* wie im gedruckten Buch: Inter, linksbündig, ohne Trennung */
+             hyphens: manual; -webkit-hyphens: manual; overflow-wrap: break-word; }
+  .hb-flow h2, .hb-flow h3, .hb-flow h4 { font-family: "Lora", Georgia, serif; font-weight: 600; line-height: 1.2; break-after: avoid; }
+  .hb-flow h2 { break-before: column; font-size: 1.85em; color: var(--accent); padding-top: calc(var(--ch) * .2); margin: 0 0 .7em; }
+  .hb-flow h3 { font-size: 1.32em; margin: 1.1em 0 .4em; }
+  .hb-flow h4 { font-size: 1.1em; margin: .9em 0 .3em; color: var(--accent); }
+  .hb-flow p { margin: 0 0 .65em; text-align: left; orphans: 2; widows: 2; }
   .hb-flow ul, .hb-flow ol { padding-left: 1.2em; margin: .3em 0 .7em; }
   .hb-flow li { margin-bottom: .3em; }
   .hb-flow em { color: var(--ink-2); }
@@ -304,7 +304,7 @@
   .hb-flow th { color: var(--ink-2); font-weight: 600; }
   .hb-flow tr { break-inside: avoid; }
   .hb-titlepage { height: var(--ch); display: flex; flex-direction: column; justify-content: center; text-align: center; break-after: column; }
-  .hb-titlepage h2 { break-before: auto; padding-top: 0; font-size: 2.9em; margin-bottom: .3em; }
+  .hb-titlepage h2 { break-before: auto; padding-top: 0; font-size: 2.5em; margin-bottom: .3em; }
   .hb-part { height: var(--ch); display: flex; flex-direction: column; justify-content: center; text-align: center;
              break-before: column; break-after: column; -webkit-column-break-before: always; -webkit-column-break-after: always; overflow: hidden; }
   .hb-part h2 { break-before: auto; padding-top: 0; margin-bottom: .8em; }
@@ -320,11 +320,11 @@
                  padding: 15% 10% 11%; color: #efe4cf; background: #382a21;
                  background-image: radial-gradient(130% 90% at 30% 15%, rgba(255,235,200,.07), rgba(0,0,0,0) 60%); }
   .hb-pg.cover::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 5%; background: linear-gradient(to right, rgba(0,0,0,.35), transparent); }
-  .hb-cv-t { font: 400 calc(var(--pw) * .085)/1 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  .hb-cv-t { font: 500 calc(var(--pw) * .08)/1 "Lora", Georgia, serif;
              letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
   .hb-cv-logo { width: 50%; margin-top: 13%; }
   .hb-cv-line { width: 24%; height: 0; border-top: 1px solid currentColor; opacity: .8; margin-top: 7%; }
-  .hb-cv-s { font: 400 calc(var(--pw) * .05)/1.35 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; margin-top: 5%; }
+  .hb-cv-s { font: 400 calc(var(--pw) * .05)/1.35 "Lora", Georgia, serif; margin-top: 5%; }
   .hb-cv-a { margin-top: auto; font: 500 calc(var(--pw) * .03)/1 var(--sans); letter-spacing: .2em; text-transform: uppercase; opacity: .9; }
   .hb-pg.blank { background: linear-gradient(to left, #e6dcc6, var(--paper)); }
 
@@ -1141,10 +1141,19 @@ async function loadHandbuch(force) {
     return;
   }
   renderHandbuch(data.inhalt);
+  await hbFonts();
   $("#hb-meta").textContent = "Stand " + new Date(data.updated_at).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" });
   hbLayout(true);
 }
 
+// Buchschriften erst laden, sonst stimmt der Seitenumbruch nach dem Nachladen nicht mehr
+function hbFonts() {
+  if (!document.fonts) return Promise.resolve();
+  return Promise.race([
+    Promise.all(["400 16px Inter", "600 16px Inter", "600 16px Lora", "500 16px Lora"].map((f) => document.fonts.load(f))),
+    new Promise((r) => setTimeout(r, 2500)),   // ohne Netz nicht ewig warten
+  ]).catch(() => {});
+}
 // Kleiner Markdown-Umsetzer für den Buchtext: Überschriften, Absätze, Listen, Tabellen, fett/kursiv
 function mdInline(t) {
   return esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*([^*]+?)\*/g, "<em>$1</em>");
@@ -1263,7 +1272,7 @@ function hbLayout(force) {
   const ratio = HB.pages > 1 ? hbCurPage() / (HB.pages - 1) : null;
   Object.assign(HB, { mode, W, H });
   const px = mode === "single" ? 22 : Math.round(W * .09), pt = Math.round(H * .075), pb = Math.round(H * .08);
-  const fs = mode === "single" ? 16.5 : Math.max(12.5, Math.min(16, W / 30));
+  const fs = mode === "single" ? 15.5 : Math.max(12, Math.min(15, W / 32));
   const cw = W - 2 * px, ch = H - pt - pb, gap = 40;
   for (const [k, v] of Object.entries({ pw: W, ph: H, px, pt, pb, cw, ch, gap, fs })) view.style.setProperty("--" + k, v + "px");
   HB.stride = cw + gap;
